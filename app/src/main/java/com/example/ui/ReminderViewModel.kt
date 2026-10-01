@@ -152,13 +152,25 @@ class ReminderViewModel(
 
     fun toggleCompleted(reminder: ReminderEntity) {
         viewModelScope.launch {
+            // The repository is the source of truth because a recurring reminder
+            // may remain active while its canonical occurrence advances.
             repository.toggleCompleted(reminder)
-            if (!reminder.isCompleted) {
-                // If it was active and now completed, cancel alarm
+
+            val updated = repository.getReminderById(reminder.id)
+            if (updated == null) {
                 ReminderScheduler.cancelReminder(appContext, reminder.id)
+                AlarmPlayer.stopAlarm(appContext, reminder.id)
+                return@launch
+            }
+
+            if (updated.isCompleted) {
+                ReminderScheduler.cancelReminder(appContext, updated.id)
+                AlarmPlayer.stopAlarm(appContext, updated.id)
             } else {
-                // Reactivated
-                ReminderScheduler.scheduleReminder(appContext, reminder)
+                // Recurring reminders are advanced to their next occurrence by
+                // the repository. Schedule that new occurrence rather than
+                // cancelling it after the database update.
+                ReminderScheduler.scheduleReminder(appContext, updated)
             }
         }
     }
@@ -371,12 +383,20 @@ class ReminderViewModel(
 
     fun dismissActiveAlarm() {
         val alarm = currentAlarm.value
-        AlarmPlayer.stopAlarm(appContext)
         if (alarm != null && alarm.reminderId > 0 && alarm.reminderId != 99999L) {
+            // Stop only the alarm the user is currently acting on. Another
+            // reminder may be ringing at the same time.
+            AlarmPlayer.stopAlarm(appContext, alarm.reminderId)
             viewModelScope.launch {
                 val item = repository.getReminderById(alarm.reminderId)
                 if (item != null) {
                     repository.toggleCompleted(item)
+                    val updated = repository.getReminderById(item.id)
+                    if (updated != null && !updated.isCompleted) {
+                        ReminderScheduler.scheduleReminder(appContext, updated)
+                    } else {
+                        ReminderScheduler.cancelReminder(appContext, item.id)
+                    }
                 }
             }
         }
@@ -384,12 +404,16 @@ class ReminderViewModel(
 
     fun snoozeActiveAlarm(minutes: Int = 10) {
         val alarm = currentAlarm.value
-        AlarmPlayer.stopAlarm(appContext)
         if (alarm != null && alarm.reminderId > 0 && alarm.reminderId != 99999L) {
+            AlarmPlayer.stopAlarm(appContext, alarm.reminderId)
             viewModelScope.launch {
                 val item = repository.getReminderById(alarm.reminderId)
                 if (item != null) {
                     repository.snooze(item, minutes)
+                    val updated = repository.getReminderById(item.id)
+                    if (updated != null) {
+                        ReminderScheduler.scheduleReminder(appContext, updated)
+                    }
                 }
             }
         }
