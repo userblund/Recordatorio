@@ -1,0 +1,88 @@
+<resources>
+    <string name="app_name">Recordatorio</string>
+    <string name="app_tagline">Organización y recordatorios sin límites en el tiempo</string>
+    <string name="filter_all">Todos</string>
+    <string name="filter_today">Hoy</string>
+    <string name="filter_meals">Comidas</string>
+    <string name="filter_meds">Remedios</string>
+    <string name="filter_habits">Hábitos</string>
+    <string name="filter_far_future">Infinito / Futuro</string>
+    <string name="filter_completed">Completados</string>
+
+    <string name="new_reminder">Nuevo recordatorio</string>
+    <string name="edit_reminder">Editar recordatorio</string>
+    <string name="reminder_title">Título del recordatorio</string>
+    <string name="reminder_title_hint">Ej: Tomar antibiótico, Almuerzo nutritivo, Cápsula 2500...</string>
+    <string name="reminder_description">Descripción o notas</string>
+    <string name="reminder_description_hint">Ej: Con abundante agua después de comer, 2 comprimidos...</string>
+    <string name="category_label">Categoría</string>
+    <string name="priority_label">Prioridad</string>
+    <string name="date_and_time_label">Fecha y Hora</string>
+    <string name="time_label">Hora</string>
+    <string name="date_label">Fecha</string>
+    <string name="year_label">Año</string>
+    <string name="recurrence_label">Repetición / Frecuencia</string>
+    <string name="save_reminder">Guardar Recordatorio</string>
+    <string name="cancel">Cancelar</string>
+    <string name="delete">Eliminar</string>
+    <string name="complete">Completar</string>
+    <string name="uncomplete">Reactivar</string>
+    <string name="snooze">Posponer</string>
+    <string name="snooze_10m">+10 min</string>
+    <string name="snooze_1h">+1 hora</string>
+    <string name="snooze_tomorrow">Mañana</string>
+    <string name="test_notification">Probar Notificación</string>
+    <string name="test_alarm">Probar Alarma 🔔</string>
+
+    <string name="alarm_ringing_title">¡Alarma de Recordatorio!</string>
+    <string name="turn_off_alarm">APAGAR ALARMA</string>
+    <string name="turn_off_alarm_hint">Toca aquí para detener el sonido y registrarlo</string>
+    <string name="snooze_alarm">POSPONER 10 MIN</string>
+    <string name="alarm_sound_continuous">Alarma Sonora Continua</string>
+    <string name="alarm_sound_continuous_desc">Suena y vibra continuamente hasta que toques el botón de apagar</string>
+
+    <string name="category_medication">Medicamento / Salud</string>
+    <string name="category_meal">Alimentación / Comida</string>
+    <string name="category_habit">Hábito / Bienestar</string>
+    <string name="category_work">Trabajo / Estudio</string>
+    <string name="category_far_future">Largo Plazo / Infinito</string>
+    <string name="category_personal">Personal / General</string>
+
+    <string name="recurrence_once">Una sola vez</string>
+    <string name="recurrence_daily">Todos los días (Infinito)</string>
+    <string name="recurrence_weekdays">Lunes a Viernes</string>
+    <string name="recurrence_weekly">Semanal</string>
+    <string name="recurrence_monthly">Mensual</string>
+    <string name="recurrence_yearly">Anual</string>
+    <string name="recurrence_interval_hours">Cada X horas</string>
+
+    <string name="priority_normal">Normal</string>
+    <string name="priority_medium">Importante</string>
+    <string name="priority_high">Urgente</string>
+
+    <string name="quick_meal_breakfast">Desayuno 🥐</string>
+    <string name="quick_meal_lunch">Almuerzo 🥗</string>
+    <string name="quick_meal_snack">Merienda 🍎</string>
+    <string name="quick_meal_dinner">Cena 🍲</string>
+    <string name="quick_meal_water">Beber agua 💧</string>
+    <string name="quick_med_morning">Remedio Mañana 💊</string>
+    <string name="quick_med_night">Remedio Noche 💊</string>
+    <string name="quick_infinite_2500">Cápsula Año 2500 🚀</string>
+    <string name="quick_infinite_10000">Cápsula Año 10000 🌌</string>
+
+    <string name="empty_title">No hay recordatorios aquí</string>
+    <string name="empty_subtitle">Toca el botón + para programar uno nuevo o usa las plantillas rápidas.</string>
+    <string name="today_overview_title">Resumen de Hoy</string>
+    <string name="stats_pending">pendientes hoy</string>
+    <string name="stats_completed">completados</string>
+    <string name="next_up">Próximo</string>
+    <string name="no_upcoming">Sin recordatorios pendientes próximos</string>
+    <string name="infinite_badge">Infinito</string>
+    <string name="channel_name">Alarmas y Recordatorios</string>
+    <string name="channel_description">Notificaciones y alarmas sonoras continuas para comidas y medicamentos</string>
+    <string name="search_placeholder">Buscar recordatorio...</string>
+    <string name="confirm_delete_title">¿Eliminar recordatorio?</string>
+    <string name="confirm_delete_msg">Esta acción no se puede deshacer.</string>
+    <string name="notification_test_sent">Alarma sonora iniciada</string>
+    <string name="permission_denied_notice">Permiso de notificaciones deshabilitado. Actívalo para recibir avisos.</string>
+</resources>
