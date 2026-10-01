@@ -67,12 +67,10 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
         val newMinute = cal.get(Calendar.MINUTE)
         val newMillis = cal.timeInMillis
 
+        // Snooze changes only this occurrence. Keep the reminder's
+        // canonical calendar slot untouched so recurring reminders return
+        // to their normal schedule after the snoozed occurrence.
         val updated = reminder.copy(
-            year = newYear,
-            month = newMonth,
-            day = newDay,
-            hour = newHour,
-            minute = newMinute,
             triggerTimeMillis = newMillis,
             isCompleted = false
         )
