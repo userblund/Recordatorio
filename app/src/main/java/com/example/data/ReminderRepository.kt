@@ -28,7 +28,7 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
             // Marking as completed
             if (recurrence.isInfinite) {
                 // For infinite / recurring reminders: advance to next occurrence and keep active!
-                val next = DateUtils.computeNextOccurrence(
+                var next = DateUtils.computeNextOccurrence(
                     currentYear = reminder.year,
                     currentMonth = reminder.month,
                     currentDay = reminder.day,
@@ -37,6 +37,26 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
                     recurrenceType = recurrence,
                     intervalHours = reminder.recurrenceIntervalHours
                 )
+
+                // If the phone was off, the app was stopped, or the user
+                // responds long after the scheduled occurrence, skip missed
+                // recurring occurrences instead of immediately firing a chain
+                // of overdue alarms. The next stored occurrence must be in the
+                // future relative to the moment the user completed this one.
+                var guard = 0
+                while (next.triggerMillis <= now && guard < 100_000) {
+                    next = DateUtils.computeNextOccurrence(
+                        currentYear = next.year,
+                        currentMonth = next.month,
+                        currentDay = next.day,
+                        hour = next.hour,
+                        minute = next.minute,
+                        recurrenceType = recurrence,
+                        intervalHours = reminder.recurrenceIntervalHours
+                    )
+                    guard++
+                }
+
                 val updated = reminder.copy(
                     year = next.year,
                     month = next.month,
