@@ -29,7 +29,7 @@ object AlarmPlayer {
     private const val TAG = "AlarmPlayer"
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
-    private val activeAlarmIds = mutableSetOf<Long>()
+    private val activeAlarms = linkedMapOf<Long, ActiveAlarmData>()
 
     private val _isAlarmPlaying = MutableStateFlow(false)
     val isAlarmPlaying: StateFlow<Boolean> = _isAlarmPlaying.asStateFlow()
@@ -45,15 +45,15 @@ object AlarmPlayer {
         message: String,
         category: String
     ) {
-        val wasAlreadyActive = activeAlarmIds.contains(reminderId)
-        activeAlarmIds.add(reminderId)
-
-        _currentAlarm.value = ActiveAlarmData(
+        val alarmData = ActiveAlarmData(
             reminderId = reminderId,
             title = title,
             message = message,
             category = category
         )
+        val wasAlreadyActive = activeAlarms.put(reminderId, alarmData) != null
+
+        _currentAlarm.value = alarmData
         _isAlarmPlaying.value = true
 
         if (wasAlreadyActive || mediaPlayer != null) {
@@ -108,14 +108,15 @@ object AlarmPlayer {
 
     @Synchronized
     fun stopAlarm(context: Context) {
-        activeAlarmIds.clear()
+        activeAlarms.clear()
         stopSharedAlarm()
     }
 
     @Synchronized
     fun stopAlarm(context: Context, reminderId: Long) {
-        activeAlarmIds.remove(reminderId)
-        if (activeAlarmIds.isNotEmpty()) {
+        activeAlarms.remove(reminderId)
+        if (activeAlarms.isNotEmpty()) {
+            _currentAlarm.value = activeAlarms.values.last()
             _isAlarmPlaying.value = true
             return
         }
