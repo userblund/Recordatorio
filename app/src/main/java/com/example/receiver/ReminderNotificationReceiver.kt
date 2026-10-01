@@ -5,10 +5,12 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import androidx.core.app.NotificationCompat
+import androidx.core.app.RemoteInput
 import com.example.R
 import com.example.RecordatorioApp
-import com.example.ui.AlarmRingingActivity
+import com.example.data.RecurrenceType
 import com.example.util.AlarmPlayer
 import com.example.util.ReminderScheduler
 import kotlinx.coroutines.CoroutineScope
@@ -18,68 +20,81 @@ import kotlinx.coroutines.launch
 class ReminderNotificationReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val action = intent.action
+        val reminderId = intent.getLongExtra(EXTRA_REMINDER_ID, 0L)
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        if (action == ACTION_DISMISS_ALARM) {
-            AlarmPlayer.stopAlarm(context)
-            val notificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val notifId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, 1)
-            notificationManager.cancel(notifId)
-
-            val reminderId = intent.getLongExtra(EXTRA_REMINDER_ID, 0L)
-            if (reminderId > 0) {
-                val app = context.applicationContext as? RecordatorioApp
-                app?.let {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val reminder = it.repository.getReminderById(reminderId)
-                        if (reminder != null) {
-                            it.repository.toggleCompleted(reminder)
-                        }
-                    }
-                }
+        when (intent.action) {
+            ACTION_ACKNOWLEDGE -> {
+                AlarmPlayer.stopAlarm(context)
+                manager.cancel(notificationId(reminderId))
+                showConfirmation(context, reminderId, intent)
+                return
             }
-            return
+
+            ACTION_COMPLETED_YES -> {
+                AlarmPlayer.stopAlarm(context)
+                manager.cancel(notificationId(reminderId))
+                finishReminder(context, reminderId)
+                return
+            }
+
+            ACTION_COMPLETED_NO -> {
+                AlarmPlayer.stopAlarm(context)
+                manager.cancel(notificationId(reminderId))
+                showDelayOptions(context, reminderId, intent)
+                return
+            }
+
+            ACTION_DELAY -> {
+                AlarmPlayer.stopAlarm(context)
+                val minutes = intent.getIntExtra(EXTRA_MINUTES, 0).coerceIn(1, 10080)
+                manager.cancel(notificationId(reminderId))
+                if (minutes > 0) {
+                    delayReminder(context, reminderId, minutes)
+                }
+                return
+            }
+
+            ACTION_DELAY_CUSTOM -> {
+                AlarmPlayer.stopAlarm(context)
+                val results: Bundle? = RemoteInput.getResultsFromIntent(intent)
+                val raw = results?.getCharSequence(REMOTE_INPUT_KEY)?.toString()?.trim()
+                val minutes = raw?.toIntOrNull()?.coerceIn(1, 10080)
+                manager.cancel(notificationId(reminderId))
+                if (minutes != null) {
+                    delayReminder(context, reminderId, minutes)
+                } else {
+                    showDelayOptions(context, reminderId, intent, "Escribe un número de minutos válido.")
+                }
+                return
+            }
+
+            ACTION_DISMISS_ALARM -> {
+                AlarmPlayer.stopAlarm(context)
+                manager.cancel(notificationId(reminderId))
+                finishReminder(context, reminderId)
+                return
+            }
         }
 
-        val reminderId = intent.getLongExtra(EXTRA_REMINDER_ID, 0L)
-        val title = intent.getStringExtra(EXTRA_TITLE) ?: "¡Alarma de Recordatorio!"
+        // Normal reminder delivery: notification only. We deliberately do NOT
+        // launch AlarmRingingActivity, so a game such as Minecraft stays in
+        // the foreground while the alert appears as a heads-up notification.
+        val title = intent.getStringExtra(EXTRA_TITLE) ?: "Recordatorio"
         val message = intent.getStringExtra(EXTRA_MESSAGE) ?: "Es momento de atender tu recordatorio."
         val category = intent.getStringExtra(EXTRA_CATEGORY) ?: "PERSONAL"
 
-        // 1. Start continuous audio and vibration
         AlarmPlayer.startAlarm(context, reminderId, title, message, category)
+        showInitialNotification(context, reminderId, title, message, category)
+    }
 
-        // 2. Intent to open full-screen AlarmRingingActivity
-        val alarmIntent = Intent(context, AlarmRingingActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(EXTRA_REMINDER_ID, reminderId)
-            putExtra(EXTRA_TITLE, title)
-            putExtra(EXTRA_MESSAGE, message)
-            putExtra(EXTRA_CATEGORY, category)
-        }
-
-        val pendingAlarmIntent = PendingIntent.getActivity(
-            context,
-            reminderId.toInt(),
-            alarmIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Dismiss action intent
-        val dismissIntent = Intent(context, ReminderNotificationReceiver::class.java).apply {
-            this.action = ACTION_DISMISS_ALARM
-            putExtra(EXTRA_REMINDER_ID, reminderId)
-            putExtra(EXTRA_NOTIFICATION_ID, reminderId.toInt().coerceAtLeast(1))
-        }
-        val dismissPendingIntent = PendingIntent.getBroadcast(
-            context,
-            reminderId.toInt() + 100000,
-            dismissIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // 3. Build notification with full-screen intent and action button
+    private fun showInitialNotification(
+        context: Context,
+        reminderId: Long,
+        title: String,
+        message: String,
+        category: String
+    ) {
         val notification = NotificationCompat.Builder(context, ReminderScheduler.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
@@ -88,36 +103,187 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setAutoCancel(true)
-            .setContentIntent(pendingAlarmIntent)
-            .setFullScreenIntent(pendingAlarmIntent, true)
-            .addAction(
-                android.R.drawable.ic_delete,
-                "APAGAR ALARMA",
-                dismissPendingIntent
-            )
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .addAction(action(context, reminderId, ACTION_ACKNOWLEDGE, "OK", title, message, category, 10))
+            .addAction(action(context, reminderId, ACTION_DELAY, "5 min", title, message, category, 5))
+            .addAction(action(context, reminderId, ACTION_DELAY, "30 min", title, message, category, 30))
             .build()
 
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(reminderId.toInt().coerceAtLeast(1), notification)
+        notify(context, reminderId, notification)
+    }
 
-        // Also launch activity directly
-        try {
-            context.startActivity(alarmIntent)
-        } catch (e: Exception) {
-            // Background start restricted on some devices, fullScreenIntent handles it
+    private fun showConfirmation(
+        context: Context,
+        reminderId: Long,
+        original: Intent
+    ) {
+        val title = original.getStringExtra(EXTRA_TITLE) ?: "Recordatorio"
+        val category = original.getStringExtra(EXTRA_CATEGORY) ?: "PERSONAL"
+
+        val yes = action(context, reminderId, ACTION_COMPLETED_YES, "SÍ", title, "", category)
+        val no = action(context, reminderId, ACTION_COMPLETED_NO, "NO", title, "", category)
+        val later = action(context, reminderId, ACTION_DELAY, "AHORA NO", title, "", category, 10)
+
+        val notification = NotificationCompat.Builder(context, ReminderScheduler.CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("¿Ya lo hiciste?")
+            .setContentText("¿Completaste «$title»?")
+            .setStyle(NotificationCompat.BigTextStyle().bigText("¿Completaste «$title»?"))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .addAction(yes)
+            .addAction(no)
+            .addAction(later)
+            .build()
+
+        notify(context, reminderId, notification)
+    }
+
+    private fun showDelayOptions(
+        context: Context,
+        reminderId: Long,
+        original: Intent,
+        error: String? = null
+    ) {
+        val title = original.getStringExtra(EXTRA_TITLE) ?: "Recordatorio"
+        val category = original.getStringExtra(EXTRA_CATEGORY) ?: "PERSONAL"
+
+        val customInput = RemoteInput.Builder(REMOTE_INPUT_KEY)
+            .setLabel("Minutos hasta el próximo recordatorio")
+            .build()
+
+        val customIntent = Intent(context, ReminderNotificationReceiver::class.java).apply {
+            action = ACTION_DELAY_CUSTOM
+            putExtra(EXTRA_REMINDER_ID, reminderId)
+            putExtra(EXTRA_TITLE, title)
+            putExtra(EXTRA_CATEGORY, category)
+        }
+        val customPending = PendingIntent.getBroadcast(
+            context,
+            requestCode(reminderId, 7000),
+            customIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notificationBuilder = NotificationCompat.Builder(context, ReminderScheduler.CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("¿Cuándo vuelvo a recordártelo?")
+            .setContentText(error ?: "Elige un intervalo o escribe tus propios minutos.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .addAction(action(context, reminderId, ACTION_DELAY, "5 min", title, "", category, 5))
+            .addAction(action(context, reminderId, ACTION_DELAY, "15 min", title, "", category, 15))
+            .addAction(action(context, reminderId, ACTION_DELAY, "30 min", title, "", category, 30))
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.ic_launcher_foreground,
+                    "Minutos",
+                    customPending
+                ).addRemoteInput(customInput).build()
+            )
+
+        notify(context, reminderId, notificationBuilder.build())
+    }
+
+    private fun finishReminder(context: Context, reminderId: Long) {
+        if (reminderId <= 0L) return
+        val app = context.applicationContext as? RecordatorioApp ?: return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val reminder = app.repository.getReminderById(reminderId) ?: return@launch
+            app.repository.toggleCompleted(reminder)
+
+            val updated = app.repository.getReminderById(reminderId)
+            if (updated != null && !updated.isCompleted &&
+                RecurrenceType.fromId(updated.recurrenceType).isInfinite
+            ) {
+                ReminderScheduler.scheduleReminder(context, updated)
+            } else {
+                ReminderScheduler.cancelReminder(context, reminderId)
+            }
         }
     }
+
+    private fun delayReminder(context: Context, reminderId: Long, minutes: Int) {
+        if (reminderId <= 0L) return
+        val app = context.applicationContext as? RecordatorioApp ?: return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val reminder = app.repository.getReminderById(reminderId) ?: return@launch
+            app.repository.snooze(reminder, minutes)
+            val updated = app.repository.getReminderById(reminderId)
+            if (updated != null) {
+                ReminderScheduler.scheduleReminder(context, updated)
+            }
+        }
+    }
+
+    private fun action(
+        context: Context,
+        reminderId: Long,
+        action: String,
+        label: String,
+        title: String,
+        message: String,
+        category: String,
+        minutes: Int? = null
+    ): NotificationCompat.Action {
+        val intent = Intent(context, ReminderNotificationReceiver::class.java).apply {
+            this.action = action
+            putExtra(EXTRA_REMINDER_ID, reminderId)
+            putExtra(EXTRA_TITLE, title)
+            putExtra(EXTRA_MESSAGE, message)
+            putExtra(EXTRA_CATEGORY, category)
+            if (minutes != null) putExtra(EXTRA_MINUTES, minutes)
+        }
+
+        val pending = PendingIntent.getBroadcast(
+            context,
+            requestCode(reminderId, action.hashCode() + (minutes ?: 0)),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Action.Builder(
+            R.drawable.ic_launcher_foreground,
+            label,
+            pending
+        ).build()
+    }
+
+    private fun notify(context: Context, reminderId: Long, notification: android.app.Notification) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(notificationId(reminderId), notification)
+    }
+
+    private fun notificationId(reminderId: Long): Int =
+        reminderId.toInt().coerceAtLeast(1)
+
+    private fun requestCode(reminderId: Long, salt: Int): Int =
+        reminderId.toInt().coerceAtLeast(1) * 31 + salt
 
     companion object {
         const val ACTION_SHOW_REMINDER = "com.example.ACTION_SHOW_REMINDER"
         const val ACTION_DISMISS_ALARM = "com.example.ACTION_DISMISS_ALARM"
+        const val ACTION_ACKNOWLEDGE = "com.example.ACTION_ACKNOWLEDGE"
+        const val ACTION_COMPLETED_YES = "com.example.ACTION_COMPLETED_YES"
+        const val ACTION_COMPLETED_NO = "com.example.ACTION_COMPLETED_NO"
+        const val ACTION_DELAY = "com.example.ACTION_DELAY"
+        const val ACTION_DELAY_CUSTOM = "com.example.ACTION_DELAY_CUSTOM"
 
         const val EXTRA_REMINDER_ID = "extra_reminder_id"
         const val EXTRA_TITLE = "extra_title"
         const val EXTRA_MESSAGE = "extra_message"
         const val EXTRA_CATEGORY = "extra_category"
         const val EXTRA_NOTIFICATION_ID = "extra_notification_id"
+        const val EXTRA_MINUTES = "extra_minutes"
+        const val REMOTE_INPUT_KEY = "recordatorio_minutes_input"
     }
 }
