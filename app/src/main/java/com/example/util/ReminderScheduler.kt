@@ -50,8 +50,10 @@ object ReminderScheduler {
 
     fun scheduleReminder(context: Context, reminder: ReminderEntity) {
         val now = System.currentTimeMillis()
-        val oneYearAhead = now + (365L * 24 * 60 * 60 * 1000)
-        if (reminder.triggerTimeMillis > now && reminder.triggerTimeMillis <= oneYearAhead && !reminder.isCompleted) {
+        // AlarmManager accepts RTC timestamps well beyond one year. Do not
+        // artificially discard long-future reminders; the database remains
+        // the source of truth for them.
+        if (reminder.triggerTimeMillis > now && !reminder.isCompleted) {
             try {
                 val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
                     ?: return
