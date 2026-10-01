@@ -45,6 +45,26 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
                 return
             }
 
+            ACTION_REPLY -> {
+                AlarmPlayer.stopAlarm(context)
+                val results = RemoteInput.getResultsFromIntent(intent)
+                val answer = results?.getCharSequence(REPLY_KEY)?.toString()?.trim()?.lowercase()
+                manager.cancel(notificationId(reminderId))
+                when {
+                    answer == "sí" || answer == "si" || answer.contains("sí") || answer.contains("si") ||
+                            answer.contains("yes") || answer.contains("hecho") || answer.contains("listo") -> {
+                        finishReminder(context, reminderId)
+                    }
+                    answer == "no" || answer.contains("no ") || answer == "todavía no" -> {
+                        showDelayOptions(context, reminderId, intent)
+                    }
+                    else -> {
+                        showConfirmation(context, reminderId, intent, "Responde sí o no.")
+                    }
+                }
+                return
+            }
+
             ACTION_DELAY -> {
                 AlarmPlayer.stopAlarm(context)
                 val minutes = intent.getIntExtra(EXTRA_MINUTES, 0).coerceIn(1, 10080)
@@ -116,7 +136,8 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
     private fun showConfirmation(
         context: Context,
         reminderId: Long,
-        original: Intent
+        original: Intent,
+        error: String? = null
     ) {
         val title = original.getStringExtra(EXTRA_TITLE) ?: "Recordatorio"
         val category = original.getStringExtra(EXTRA_CATEGORY) ?: "PERSONAL"
@@ -125,11 +146,28 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         val no = action(context, reminderId, ACTION_COMPLETED_NO, "NO", title, "", category)
         val later = action(context, reminderId, ACTION_DELAY, "AHORA NO", title, "", category, 10)
 
+        val replyInput = RemoteInput.Builder(REPLY_KEY)
+            .setLabel("Escribe o dicta: sí / no")
+            .build()
+        val replyIntent = Intent(context, ReminderNotificationReceiver::class.java).apply {
+            action = ACTION_REPLY
+            putExtra(EXTRA_REMINDER_ID, reminderId)
+            putExtra(EXTRA_TITLE, title)
+            putExtra(EXTRA_CATEGORY, category)
+        }
+        val replyPending = PendingIntent.getBroadcast(
+            context,
+            requestCode(reminderId, 9000),
+            replyIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val question = if (error != null) "$error ¿Completaste «$title»?" else "¿Completaste «$title»?"
         val notification = NotificationCompat.Builder(context, ReminderScheduler.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("¿Ya lo hiciste?")
-            .setContentText("¿Completaste «$title»?")
-            .setStyle(NotificationCompat.BigTextStyle().bigText("¿Completaste «$title»?"))
+            .setContentText(question)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(question))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -138,6 +176,13 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             .addAction(yes)
             .addAction(no)
             .addAction(later)
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.ic_launcher_foreground,
+                    "Responder",
+                    replyPending
+                ).addRemoteInput(replyInput).build()
+            )
             .build()
 
         notify(context, reminderId, notification)
@@ -275,6 +320,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         const val ACTION_ACKNOWLEDGE = "com.example.ACTION_ACKNOWLEDGE"
         const val ACTION_COMPLETED_YES = "com.example.ACTION_COMPLETED_YES"
         const val ACTION_COMPLETED_NO = "com.example.ACTION_COMPLETED_NO"
+        const val ACTION_REPLY = "com.example.ACTION_REPLY"
         const val ACTION_DELAY = "com.example.ACTION_DELAY"
         const val ACTION_DELAY_CUSTOM = "com.example.ACTION_DELAY_CUSTOM"
 
@@ -285,5 +331,6 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         const val EXTRA_NOTIFICATION_ID = "extra_notification_id"
         const val EXTRA_MINUTES = "extra_minutes"
         const val REMOTE_INPUT_KEY = "recordatorio_minutes_input"
+        const val REPLY_KEY = "recordatorio_reply"
     }
 }
