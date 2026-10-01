@@ -326,10 +326,10 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
     }
 
     private fun notificationId(reminderId: Long): Int =
-        reminderId.toInt().coerceAtLeast(1)
+        (reminderId xor (reminderId ushr 32)).toInt() and 0x7fffffff
 
     private fun requestCode(reminderId: Long, salt: Int): Int =
-        reminderId.toInt().coerceAtLeast(1) * 31 + salt
+        ((reminderId xor (reminderId ushr 32)).toInt() * 31 + salt) and 0x7fffffff
 
     companion object {
         const val ACTION_SHOW_REMINDER = "com.example.ACTION_SHOW_REMINDER"
