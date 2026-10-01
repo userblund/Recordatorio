@@ -21,12 +21,31 @@ class RecordatorioApp : Application() {
         super.onCreate()
         ReminderScheduler.createNotificationChannel(this)
 
-        // Seed initial helpful organizer reminders (meals, meds, infinite capsule) if empty
+        // Seed the starter reminders only once. An empty database after that
+        // is a valid user state (the user may have deleted every reminder).
+        // The flag is stored separately from Room so closing/reopening the app
+        // never recreates reminders the user intentionally deleted.
         applicationScope.launch {
+            val preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            if (preferences.getBoolean(KEY_DEFAULTS_INITIALIZED, false)) {
+                return@launch
+            }
+
             val existing = repository.allReminders.firstOrNull()
             if (existing.isNullOrEmpty()) {
                 repository.populateDefaultsIfEmpty()
             }
+
+            // Mark initialization complete whether defaults were inserted or
+            // the database already contained user data.
+            preferences.edit()
+                .putBoolean(KEY_DEFAULTS_INITIALIZED, true)
+                .apply()
         }
+    }
+
+    companion object {
+        private const val PREFS_NAME = "recordatorio_app_state"
+        private const val KEY_DEFAULTS_INITIALIZED = "default_reminders_initialized"
     }
 }
