@@ -48,7 +48,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             ACTION_REPLY -> {
                 AlarmPlayer.stopAlarm(context)
                 val results = RemoteInput.getResultsFromIntent(intent)
-                val answer = results?.getCharSequence(REPLY_KEY)?.toString()?.trim()?.lowercase()
+                val answer = results?.getCharSequence(REPLY_KEY)?.toString()?.trim()?.lowercase() ?: ""
                 manager.cancel(notificationId(reminderId))
                 when {
                     answer == "sí" || answer == "si" || answer.contains("sí") || answer.contains("si") ||
