@@ -2,6 +2,9 @@ package com.example
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.app.AlarmManager
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -57,6 +60,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,8 +76,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.ReminderEntity
 import com.example.ui.AlarmRingingScreen
 import com.example.ui.ReminderDialog
@@ -118,6 +124,17 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
     val isAlarmPlaying by viewModel.isAlarmPlaying.collectAsStateWithLifecycle()
     val currentAlarm by viewModel.currentAlarm.collectAsStateWithLifecycle()
 
+    var exactAlarmAllowed by remember { mutableStateOf(true) }
+
+    fun refreshExactAlarmPermission() {
+        exactAlarmAllowed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(AlarmManager::class.java)
+            alarmManager?.canScheduleExactAlarms() == true
+        } else {
+            true
+        }
+    }
+
     var showReminderDialog by remember { mutableStateOf(false) }
     var reminderToEdit by remember { mutableStateOf<ReminderEntity?>(null) }
     var reminderToDelete by remember { mutableStateOf<ReminderEntity?>(null) }
@@ -134,6 +151,8 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
     }
 
     LaunchedEffect(Unit) {
+        refreshExactAlarmPermission()
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionCheck = ContextCompat.checkSelfPermission(
                 context,
@@ -143,6 +162,17 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshExactAlarmPermission()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Scaffold(
@@ -187,6 +217,48 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
                             }
                         }
                     )
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !exactAlarmAllowed) {
+                    item(key = "exact_alarm_permission") {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.errorContainer
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    "Alarmas exactas desactivadas",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    "Android puede retrasar tus recordatorios si este permiso está desactivado.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                TextButton(
+                                    onClick = {
+                                        try {
+                                            context.startActivity(
+                                                Intent(
+                                                    android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                                    Uri.parse("package:" + context.packageName)
+                                                )
+                                            )
+                                        } catch (_: Exception) {
+                                            context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+                                        }
+                                    }
+                                ) {
+                                    Text("Activar alarmas exactas")
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Quick Templates Row
