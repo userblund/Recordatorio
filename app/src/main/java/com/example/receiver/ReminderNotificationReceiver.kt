@@ -25,28 +25,28 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
 
         when (intent.action) {
             ACTION_ACKNOWLEDGE -> {
-                AlarmPlayer.stopAlarm(context, reminderId)
+                stopAlarmForReminder(context, reminderId)
                 manager.cancel(notificationId(reminderId))
                 showConfirmation(context, reminderId, intent)
                 return
             }
 
             ACTION_COMPLETED_YES -> {
-                AlarmPlayer.stopAlarm(context, reminderId)
+                stopAlarmForReminder(context, reminderId)
                 manager.cancel(notificationId(reminderId))
                 finishReminder(context, reminderId)
                 return
             }
 
             ACTION_COMPLETED_NO -> {
-                AlarmPlayer.stopAlarm(context, reminderId)
+                stopAlarmForReminder(context, reminderId)
                 manager.cancel(notificationId(reminderId))
                 showDelayOptions(context, reminderId, intent)
                 return
             }
 
             ACTION_REPLY -> {
-                AlarmPlayer.stopAlarm(context, reminderId)
+                stopAlarmForReminder(context, reminderId)
                 val results = RemoteInput.getResultsFromIntent(intent)
                 val answer = results?.getCharSequence(REPLY_KEY)?.toString()?.trim()?.lowercase() ?: ""
                 manager.cancel(notificationId(reminderId))
@@ -83,7 +83,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             }
 
             ACTION_DELAY -> {
-                AlarmPlayer.stopAlarm(context, reminderId)
+                stopAlarmForReminder(context, reminderId)
                 val minutes = intent.getIntExtra(EXTRA_MINUTES, 0).coerceIn(1, 10080)
                 manager.cancel(notificationId(reminderId))
                 if (minutes > 0) {
@@ -93,7 +93,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             }
 
             ACTION_DELAY_CUSTOM -> {
-                AlarmPlayer.stopAlarm(context, reminderId)
+                stopAlarmForReminder(context, reminderId)
                 val results: Bundle? = RemoteInput.getResultsFromIntent(intent)
                 val raw = results?.getCharSequence(REMOTE_INPUT_KEY)?.toString()?.trim()
                 val minutes = raw?.toIntOrNull()?.coerceIn(1, 10080)
@@ -107,7 +107,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             }
 
             ACTION_DISMISS_ALARM -> {
-                AlarmPlayer.stopAlarm(context, reminderId)
+                stopAlarmForReminder(context, reminderId)
                 manager.cancel(notificationId(reminderId))
                 finishReminder(context, reminderId)
                 return
@@ -121,8 +121,20 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         val message = intent.getStringExtra(EXTRA_MESSAGE) ?: "Es momento de atender tu recordatorio."
         val category = intent.getStringExtra(EXTRA_CATEGORY) ?: "PERSONAL"
 
-        AlarmPlayer.startAlarm(context, reminderId, title, message, category)
+        try {
+            AlarmSoundService.start(context, reminderId, title, message, category)
+        } catch (_: Exception) {
+            // The notification still provides the alert if the foreground
+            // service cannot be started on this device.
+        }
         showInitialNotification(context, reminderId, title, message, category)
+    }
+
+    private fun stopAlarmForReminder(context: Context, reminderId: Long) {
+        AlarmPlayer.stopAlarm(context, reminderId)
+        if (!AlarmPlayer.isAlarmPlaying.value) {
+            context.stopService(Intent(context, AlarmSoundService::class.java))
+        }
     }
 
     private fun showInitialNotification(
