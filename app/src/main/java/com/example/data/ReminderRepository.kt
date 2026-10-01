@@ -60,11 +60,6 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
     suspend fun snooze(reminder: ReminderEntity, additionalMinutes: Int) {
         val cal = Calendar.getInstance()
         cal.add(Calendar.MINUTE, additionalMinutes)
-        val newYear = cal.get(Calendar.YEAR)
-        val newMonth = cal.get(Calendar.MONTH) + 1
-        val newDay = cal.get(Calendar.DAY_OF_MONTH)
-        val newHour = cal.get(Calendar.HOUR_OF_DAY)
-        val newMinute = cal.get(Calendar.MINUTE)
         val newMillis = cal.timeInMillis
 
         // Snooze changes only this occurrence. Keep the reminder's
