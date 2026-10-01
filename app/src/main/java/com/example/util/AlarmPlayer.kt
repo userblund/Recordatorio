@@ -29,6 +29,7 @@ object AlarmPlayer {
     private const val TAG = "AlarmPlayer"
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    private val activeAlarmIds = mutableSetOf<Long>()
 
     private val _isAlarmPlaying = MutableStateFlow(false)
     val isAlarmPlaying: StateFlow<Boolean> = _isAlarmPlaying.asStateFlow()
@@ -44,7 +45,8 @@ object AlarmPlayer {
         message: String,
         category: String
     ) {
-        stopAlarm(context) // Ensure any previous alarm is stopped
+        val wasAlreadyActive = activeAlarmIds.contains(reminderId)
+        activeAlarmIds.add(reminderId)
 
         _currentAlarm.value = ActiveAlarmData(
             reminderId = reminderId,
@@ -54,7 +56,12 @@ object AlarmPlayer {
         )
         _isAlarmPlaying.value = true
 
-        // 1. Play continuous alarm sound
+        if (wasAlreadyActive || mediaPlayer != null) {
+            return
+        }
+
+        // 1. Play one shared continuous alarm sound while at least one
+        // reminder is awaiting acknowledgement.
         try {
             val alarmUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
@@ -101,6 +108,22 @@ object AlarmPlayer {
 
     @Synchronized
     fun stopAlarm(context: Context) {
+        activeAlarmIds.clear()
+        stopSharedAlarm()
+    }
+
+    @Synchronized
+    fun stopAlarm(context: Context, reminderId: Long) {
+        activeAlarmIds.remove(reminderId)
+        if (activeAlarmIds.isNotEmpty()) {
+            _isAlarmPlaying.value = true
+            return
+        }
+        stopSharedAlarm()
+    }
+
+    @Synchronized
+    private fun stopSharedAlarm() {
         try {
             mediaPlayer?.let {
                 if (it.isPlaying) {
