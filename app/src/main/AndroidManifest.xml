@@ -31,14 +31,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ui.AlarmRingingActivity"
-            android:exported="false"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:launchMode="singleTop"
-            android:theme="@style/Theme.MyApplication" />
-
         <receiver
             android:name=".receiver.ReminderNotificationReceiver"
             android:exported="false">
