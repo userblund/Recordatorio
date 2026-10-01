@@ -110,7 +110,7 @@ object ReminderScheduler {
             }
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                reminderId.toInt(),
+                alarmRequestCode(reminderId),
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
