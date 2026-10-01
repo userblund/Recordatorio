@@ -50,12 +50,29 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
                 val results = RemoteInput.getResultsFromIntent(intent)
                 val answer = results?.getCharSequence(REPLY_KEY)?.toString()?.trim()?.lowercase() ?: ""
                 manager.cancel(notificationId(reminderId))
+                val normalized = answer
+                    .replace("á", "a")
+                    .replace("é", "e")
+                    .replace("í", "i")
+                    .replace("ó", "o")
+                    .replace("ú", "u")
+                    .trim()
+
                 when {
-                    answer == "sí" || answer == "si" || answer.contains("sí") || answer.contains("si") ||
-                            answer.contains("yes") || answer.contains("hecho") || answer.contains("listo") -> {
+                    normalized == "si" ||
+                            normalized == "s" ||
+                            normalized == "yes" ||
+                            normalized == "y" ||
+                            normalized == "hecho" ||
+                            normalized == "listo" ||
+                            normalized == "completado" ||
+                            normalized == "ya" -> {
                         finishReminder(context, reminderId)
                     }
-                    answer == "no" || answer.contains("no ") || answer == "todavía no" -> {
+                    normalized == "no" ||
+                            normalized == "n" ||
+                            normalized == "todavia no" ||
+                            normalized == "aun no" -> {
                         showDelayOptions(context, reminderId, intent)
                     }
                     else -> {
