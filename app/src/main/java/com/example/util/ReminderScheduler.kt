@@ -11,12 +11,10 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.example.MainActivity
 import com.example.R
 import com.example.data.ReminderCategory
 import com.example.data.ReminderEntity
 import com.example.receiver.ReminderNotificationReceiver
-import com.example.ui.AlarmRingingActivity
 
 object ReminderScheduler {
 
@@ -71,7 +69,7 @@ object ReminderScheduler {
 
                 val pendingIntent = PendingIntent.getBroadcast(
                     context,
-                    reminder.id.toInt(),
+                    alarmRequestCode(reminder.id),
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
@@ -123,31 +121,30 @@ object ReminderScheduler {
     }
 
     fun triggerTestAlarm(context: Context) {
-        val testTitle = "¡Alarma: Hora de comer o tomar remedio!"
-        val testMessage = "Esta alarma sonará continuamente hasta que toques el botón APAGAR ALARMA."
+        val testTitle = "Prueba de recordatorio"
+        val testMessage = "Esta prueba usa la misma notificación que un recordatorio real y no abre una pantalla encima de otras apps."
 
-        // 1. Play continuous sound & vibration
-        AlarmPlayer.startAlarm(
-            context,
-            99999L,
-            testTitle,
-            testMessage,
-            ReminderCategory.MEDICATION.id
-        )
-
-        // 2. Launch full-screen AlarmRingingActivity
-        val alarmIntent = Intent(context, AlarmRingingActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        // Test the production-safe path: broadcast -> notification receiver.
+        // This deliberately never launches an Activity, so testing cannot
+        // accidentally minimize or background the game the user is playing.
+        val testIntent = Intent(context, ReminderNotificationReceiver::class.java).apply {
+            action = ReminderNotificationReceiver.ACTION_SHOW_REMINDER
             putExtra(ReminderNotificationReceiver.EXTRA_REMINDER_ID, 99999L)
             putExtra(ReminderNotificationReceiver.EXTRA_TITLE, testTitle)
             putExtra(ReminderNotificationReceiver.EXTRA_MESSAGE, testMessage)
-            putExtra(ReminderNotificationReceiver.EXTRA_CATEGORY, ReminderCategory.MEDICATION.id)
+            putExtra(
+                ReminderNotificationReceiver.EXTRA_CATEGORY,
+                ReminderCategory.PERSONAL.id
+            )
         }
 
         try {
-            context.startActivity(alarmIntent)
+            context.sendBroadcast(testIntent)
         } catch (e: Exception) {
-            Log.e("ReminderScheduler", "Error launching test alarm activity", e)
+            Log.e("ReminderScheduler", "Error sending test reminder", e)
         }
     }
+
+    private fun alarmRequestCode(reminderId: Long): Int =
+        (reminderId xor (reminderId ushr 32)).toInt() and 0x7fffffff
 }
