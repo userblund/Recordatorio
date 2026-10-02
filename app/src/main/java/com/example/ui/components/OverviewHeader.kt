@@ -19,10 +19,8 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +38,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.ui.TodayStats
 import com.example.util.DateUtils
@@ -133,6 +130,8 @@ fun OverviewHeader(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
+
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
