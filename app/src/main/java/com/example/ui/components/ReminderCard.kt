@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.IntervalUnit
 import com.example.data.RecurrenceType
 import com.example.data.ReminderCategory
 import com.example.data.ReminderEntity
@@ -187,6 +188,7 @@ fun ReminderCard(
                             text = when (recurrence) {
                                 RecurrenceType.INTERVAL_HOURS -> "c/${reminder.recurrenceIntervalHours}h"
                                 RecurrenceType.INTERVAL_MINUTES -> "c/${reminder.recurrenceIntervalMinutes}m"
+                                RecurrenceType.GENERIC_INTERVAL -> "c/${reminder.recurrenceIntervalValue} ${IntervalUnit.fromId(reminder.recurrenceIntervalUnit).displayName}"
                                 else -> recurrence.displayName
                             },
                             style = MaterialTheme.typography.labelSmall,
