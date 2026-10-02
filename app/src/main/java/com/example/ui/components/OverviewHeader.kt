@@ -24,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -119,30 +120,19 @@ fun OverviewHeader(
                         }
                     }
 
-                    // Test continuous alarm button
-                    ElevatedButton(
+                    // Compact test-alarm control: it must not crowd the header.
+                    IconButton(
                         onClick = onTestAlarm,
-                        modifier = Modifier.testTag("test_alarm_button"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.elevatedButtonColors(
-                            containerColor = Color(0xFFEF4444),
-                            contentColor = Color.White
-                        ),
-                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding
+                        modifier = Modifier
+                            .testTag("test_alarm_button")
+                            .size(40.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.NotificationsActive,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Probar Alarma 🔔",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
+                            contentDescription = "Probar alarma",
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
-                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
