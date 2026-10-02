@@ -110,7 +110,7 @@ fun ReminderDialog(
         intervalOffsetMinutes: Long,
         recurrenceIntervalValue: Long,
         recurrenceIntervalUnit: IntervalUnit
-    ) -> Unit = { _, _, _, _, _, _, _, _, _, _, _, _, _, _ -> }
+    ) -> Unit = { _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ -> }
 ) {
     val cal = remember {
         Calendar.getInstance().apply {
