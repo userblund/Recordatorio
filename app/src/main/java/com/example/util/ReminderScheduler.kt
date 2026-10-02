@@ -136,6 +136,7 @@ object ReminderScheduler {
                 ReminderNotificationReceiver.EXTRA_CATEGORY,
                 ReminderCategory.PERSONAL.id
             )
+            putExtra(ReminderNotificationReceiver.EXTRA_IS_TEST_ALARM, true)
         }
 
         try {
