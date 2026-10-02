@@ -1,5 +1,6 @@
 {
   "name": "Recordatorio",
   "description": "Aplicación definitiva de recordatorios y organización: medicamentos, comidas y eventos sin límite de fecha (infinitos hasta el año 10000+).",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
