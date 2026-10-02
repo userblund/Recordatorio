@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.CustomTemplateEntity
+import com.example.data.IntervalUnit
 import com.example.data.RecurrenceType
 import com.example.data.ReminderCategory
 import com.example.data.ReminderEntity
@@ -214,7 +215,9 @@ class ReminderViewModel(
         second: Int = 0,
         recurrenceType: RecurrenceType,
         recurrenceIntervalHours: Int = 8,
-        recurrenceIntervalMinutes: Int = 0
+        recurrenceIntervalMinutes: Int = 0,
+        recurrenceIntervalValue: Long = 1L,
+        recurrenceIntervalUnit: IntervalUnit = IntervalUnit.MINUTE
     ) {
         viewModelScope.launch {
             val triggerMillis = DateUtils.computeTriggerMillis(year, month, day, hour, minute, second)
@@ -234,6 +237,8 @@ class ReminderViewModel(
                 recurrenceType = recurrenceType.id,
                 recurrenceIntervalHours = recurrenceIntervalHours,
                 recurrenceIntervalMinutes = recurrenceIntervalMinutes,
+                recurrenceIntervalValue = recurrenceIntervalValue.coerceAtLeast(1L),
+                recurrenceIntervalUnit = recurrenceIntervalUnit.id,
                 isCompleted = false
             )
 
@@ -593,7 +598,9 @@ class ReminderViewModel(
         recurrenceType: RecurrenceType,
         recurrenceIntervalHours: Int,
         recurrenceIntervalMinutes: Int,
-        intervalOffsetMinutes: Long = 0L
+        intervalOffsetMinutes: Long = 0L,
+        recurrenceIntervalValue: Long = 1L,
+        recurrenceIntervalUnit: IntervalUnit = IntervalUnit.MINUTE
     ) {
         viewModelScope.launch {
             val template = CustomTemplateEntity(
@@ -612,7 +619,9 @@ class ReminderViewModel(
                 second = second,
                 recurrenceType = recurrenceType.id,
                 recurrenceIntervalHours = recurrenceIntervalHours,
-                recurrenceIntervalMinutes = recurrenceIntervalMinutes
+                recurrenceIntervalMinutes = recurrenceIntervalMinutes,
+                recurrenceIntervalValue = recurrenceIntervalValue,
+                recurrenceIntervalUnit = recurrenceIntervalUnit.id
             )
             repository.saveCustomTemplate(template)
         }
@@ -642,7 +651,9 @@ class ReminderViewModel(
                     second = now.get(Calendar.SECOND),
                     recurrenceType = RecurrenceType.fromId(template.recurrenceType),
                     recurrenceIntervalHours = template.recurrenceIntervalHours,
-                    recurrenceIntervalMinutes = template.recurrenceIntervalMinutes
+                    recurrenceIntervalMinutes = template.recurrenceIntervalMinutes,
+                    recurrenceIntervalValue = template.recurrenceIntervalValue,
+                    recurrenceIntervalUnit = IntervalUnit.fromId(template.recurrenceIntervalUnit)
                 )
             } else {
                 saveReminder(
@@ -658,7 +669,9 @@ class ReminderViewModel(
                     second = template.second,
                     recurrenceType = RecurrenceType.fromId(template.recurrenceType),
                     recurrenceIntervalHours = template.recurrenceIntervalHours,
-                    recurrenceIntervalMinutes = template.recurrenceIntervalMinutes
+                    recurrenceIntervalMinutes = template.recurrenceIntervalMinutes,
+                    recurrenceIntervalValue = template.recurrenceIntervalValue,
+                    recurrenceIntervalUnit = IntervalUnit.fromId(template.recurrenceIntervalUnit)
                 )
             }
         }
