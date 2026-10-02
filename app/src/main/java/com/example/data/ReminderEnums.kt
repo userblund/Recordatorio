@@ -85,12 +85,28 @@ enum class RecurrenceType(
     MONTHLY("MONTHLY", "Mensual", true),
     YEARLY("YEARLY", "Anual", true),
     INTERVAL_HOURS("INTERVAL_HOURS", "Cada X horas", true),
-    INTERVAL_MINUTES("INTERVAL_MINUTES", "Cada X minutos", true);
+    INTERVAL_MINUTES("INTERVAL_MINUTES", "Cada X minutos", true),
+    GENERIC_INTERVAL("GENERIC_INTERVAL", "Cada X unidades", true);
 
     companion object {
         fun fromId(id: String): RecurrenceType {
             return entries.firstOrNull { it.id == id } ?: ONCE
         }
+    }
+}
+
+enum class IntervalUnit(val id: String, val displayName: String) {
+    SECOND("SECOND", "segundo(s)"),
+    MINUTE("MINUTE", "minuto(s)"),
+    HOUR("HOUR", "hora(s)"),
+    DAY("DAY", "día(s)"),
+    WEEK("WEEK", "semana(s)"),
+    MONTH("MONTH", "mes(es)"),
+    YEAR("YEAR", "año(s)"),
+    CENTURY("CENTURY", "siglo(s)");
+
+    companion object {
+        fun fromId(id: String): IntervalUnit = entries.firstOrNull { it.id == id } ?: MINUTE
     }
 }
 
