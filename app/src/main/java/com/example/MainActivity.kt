@@ -81,6 +81,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.ReminderEntity
+import com.example.data.CustomTemplateEntity
 import com.example.ui.AlarmRingingScreen
 import com.example.ui.ReminderDialog
 import com.example.ui.ReminderTab
@@ -123,6 +124,7 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
     val todayStats by viewModel.todayStats.collectAsStateWithLifecycle()
     val isAlarmPlaying by viewModel.isAlarmPlaying.collectAsStateWithLifecycle()
     val currentAlarm by viewModel.currentAlarm.collectAsStateWithLifecycle()
+    val customTemplates by viewModel.customTemplates.collectAsStateWithLifecycle()
 
     var exactAlarmAllowed by remember { mutableStateOf(true) }
 
@@ -138,6 +140,7 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
     var showReminderDialog by remember { mutableStateOf(false) }
     var reminderToEdit by remember { mutableStateOf<ReminderEntity?>(null) }
     var reminderToDelete by remember { mutableStateOf<ReminderEntity?>(null) }
+    var customTemplateToDelete by remember { mutableStateOf<CustomTemplateEntity?>(null) }
 
     // Request notification permission on Android 13+
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -278,6 +281,99 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
                                 }
                             }
                         )
+                    }
+                }
+
+                // Custom Templates (user-saved) — appear only when user has saved at least one
+                if (customTemplates.isNotEmpty()) {
+                    item(key = "custom_templates") {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "📌 Mis Plantillas Custom",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "${customTemplates.size}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                customTemplates.forEach { template ->
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("custom_template_${template.id}"),
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "${template.emoji} ${template.name}",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = template.title,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                if (template.intervalOffsetMinutes > 0L) {
+                                                    Text(
+                                                        text = "⏱️ dentro de ${template.intervalOffsetMinutes} min",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                TextButton(
+                                                    onClick = {
+                                                        viewModel.applyCustomTemplate(template)
+                                                        scope.launch {
+                                                            snackbarHostState.showSnackbar("Recordatorio creado desde tu plantilla: ${template.name}")
+                                                        }
+                                                    },
+                                                    modifier = Modifier.testTag("apply_custom_${template.id}")
+                                                ) { Text("+ Añadir") }
+                                                IconButton(
+                                                    onClick = { customTemplateToDelete = template },
+                                                    modifier = Modifier.testTag("delete_custom_${template.id}")
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Clear,
+                                                        contentDescription = "Borrar plantilla",
+                                                        tint = MaterialTheme.colorScheme.error
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -477,7 +573,7 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
                 showReminderDialog = false
                 reminderToEdit = null
             },
-            onSave = { title, description, category, priority, year, month, day, hour, minute, recurrenceType, recurrenceIntervalHours ->
+            onSave = { title, description, category, priority, year, month, day, hour, minute, second, recurrenceType, recurrenceIntervalHours, recurrenceIntervalMinutes ->
                 viewModel.saveReminder(
                     id = reminderToEdit?.id ?: 0L,
                     title = title,
@@ -489,19 +585,44 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
                     day = day,
                     hour = hour,
                     minute = minute,
+                    second = second,
                     recurrenceType = recurrenceType,
-                    recurrenceIntervalHours = recurrenceIntervalHours
+                    recurrenceIntervalHours = recurrenceIntervalHours,
+                    recurrenceIntervalMinutes = recurrenceIntervalMinutes
                 )
                 showReminderDialog = false
                 reminderToEdit = null
                 scope.launch {
                     snackbarHostState.showSnackbar("Recordatorio guardado correctamente.")
                 }
+            },
+            onSaveAsTemplate = { title, description, category, priority, year, month, day, hour, minute, second, recurrenceType, recurrenceIntervalHours, recurrenceIntervalMinutes, intervalOffsetMinutes ->
+                viewModel.saveCurrentAsCustomTemplate(
+                    name = title,
+                    emoji = "📌",
+                    title = title,
+                    description = description,
+                    category = category,
+                    priority = priority,
+                    year = year,
+                    month = month,
+                    day = day,
+                    hour = hour,
+                    minute = minute,
+                    second = second,
+                    recurrenceType = recurrenceType,
+                    recurrenceIntervalHours = recurrenceIntervalHours,
+                    recurrenceIntervalMinutes = recurrenceIntervalMinutes,
+                    intervalOffsetMinutes = intervalOffsetMinutes
+                )
+                scope.launch {
+                    snackbarHostState.showSnackbar("Plantilla guardada arriba en 'Mis Plantillas Custom'.")
+                }
             }
         )
     }
 
-    // Delete Confirmation Dialog
+    // Delete Confirmation Dialog (reminder)
     reminderToDelete?.let { toDelete ->
         AlertDialog(
             onDismissRequest = { reminderToDelete = null },
@@ -525,6 +646,37 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
                 TextButton(
                     onClick = { reminderToDelete = null },
                     modifier = Modifier.testTag("cancel_delete_button")
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Delete Confirmation Dialog (custom template)
+    customTemplateToDelete?.let { toDeleteTemplate ->
+        AlertDialog(
+            onDismissRequest = { customTemplateToDelete = null },
+            title = { Text("¿Borrar plantilla custom?") },
+            text = { Text("Se eliminará la plantilla \"${toDeleteTemplate.name}\". No afecta a los recordatorios ya creados a partir de ella.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteCustomTemplate(toDeleteTemplate)
+                        customTemplateToDelete = null
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Plantilla custom eliminada.")
+                        }
+                    },
+                    modifier = Modifier.testTag("confirm_delete_template_button")
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { customTemplateToDelete = null },
+                    modifier = Modifier.testTag("cancel_delete_template_button")
                 ) {
                     Text("Cancelar")
                 }

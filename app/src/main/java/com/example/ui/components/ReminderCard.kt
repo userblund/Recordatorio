@@ -78,8 +78,8 @@ fun ReminderCard(
         DateUtils.formatDate(reminder.year, reminder.month, reminder.day)
     }
 
-    val timeFormatted = remember(reminder.hour, reminder.minute) {
-        DateUtils.formatTime(reminder.hour, reminder.minute)
+    val timeFormatted = remember(reminder.hour, reminder.minute, reminder.second) {
+        DateUtils.formatTime(reminder.hour, reminder.minute, reminder.second)
     }
 
     Card(
@@ -184,10 +184,10 @@ fun ReminderCard(
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            text = if (recurrence == RecurrenceType.INTERVAL_HOURS) {
-                                "c/${reminder.recurrenceIntervalHours}h"
-                            } else {
-                                recurrence.displayName
+                            text = when (recurrence) {
+                                RecurrenceType.INTERVAL_HOURS -> "c/${reminder.recurrenceIntervalHours}h"
+                                RecurrenceType.INTERVAL_MINUTES -> "c/${reminder.recurrenceIntervalMinutes}m"
+                                else -> recurrence.displayName
                             },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,

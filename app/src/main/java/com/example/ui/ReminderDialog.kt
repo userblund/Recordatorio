@@ -85,9 +85,27 @@ fun ReminderDialog(
         day: Int,
         hour: Int,
         minute: Int,
+        second: Int,
         recurrenceType: RecurrenceType,
-        recurrenceIntervalHours: Int
-    ) -> Unit
+        recurrenceIntervalHours: Int,
+        recurrenceIntervalMinutes: Int
+    ) -> Unit,
+    onSaveAsTemplate: (
+        title: String,
+        description: String,
+        category: ReminderCategory,
+        priority: ReminderPriority,
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int,
+        minute: Int,
+        second: Int,
+        recurrenceType: RecurrenceType,
+        recurrenceIntervalHours: Int,
+        recurrenceIntervalMinutes: Int,
+        intervalOffsetMinutes: Long
+    ) -> Unit = { _, _, _, _, _, _, _, _, _, _, _, _, _, _ -> }
 ) {
     val cal = remember {
         Calendar.getInstance().apply {
@@ -127,6 +145,9 @@ fun ReminderDialog(
     var minute by remember {
         mutableIntStateOf(initialReminder?.minute ?: (cal.get(Calendar.MINUTE) / 5 * 5))
     }
+    var second by remember {
+        mutableIntStateOf(initialReminder?.second ?: 0)
+    }
 
     var selectedRecurrence by remember {
         mutableStateOf(
@@ -137,6 +158,13 @@ fun ReminderDialog(
     var intervalHours by remember {
         mutableIntStateOf(initialReminder?.recurrenceIntervalHours ?: 8)
     }
+    var intervalMinutes by remember {
+        mutableIntStateOf(initialReminder?.recurrenceIntervalMinutes ?: 30)
+    }
+    // When > 0 the dialog saves the reminder as a relative-offset template:
+    // "fire N minutes from now". Useful for game events / AFK timers.
+    var templateOffsetMinutes by remember { mutableStateOf(0L) }
+    var showSaveAsTemplateFeedback by remember { mutableStateOf(false) }
 
     var titleError by remember { mutableStateOf(false) }
 
@@ -147,7 +175,7 @@ fun ReminderDialog(
 
     val previewTriggerMillis by remember {
         derivedStateOf {
-            DateUtils.computeTriggerMillis(year, month, day, hour, minute)
+            DateUtils.computeTriggerMillis(year, month, day, hour, minute, second)
         }
     }
 
@@ -320,7 +348,7 @@ fun ReminderDialog(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
-                                    text = "Hora: ${DateUtils.formatTime(hour, minute)}",
+                                    text = "Hora: ${DateUtils.formatTime(hour, minute, second)}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -382,6 +410,32 @@ fun ReminderDialog(
                                         Icon(Icons.Default.Add, contentDescription = "Más min")
                                     }
                                 }
+
+                                Text(text = ":", style = MaterialTheme.typography.titleLarge)
+
+                                // Seconds (new — user requested time picker not limited to H:M)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = { second = if (second == 0) 59 else second - 1 },
+                                        modifier = Modifier.testTag("second_minus")
+                                    ) {
+                                        Icon(Icons.Default.Remove, contentDescription = "Menos seg")
+                                    }
+                                    Text(
+                                        text = String.format("%02d s", second),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    IconButton(
+                                        onClick = { second = (second + 1) % 60 },
+                                        modifier = Modifier.testTag("second_plus")
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = "Más seg")
+                                    }
+                                }
                             }
 
                             // Quick time presets for meals & meds
@@ -405,6 +459,7 @@ fun ReminderDialog(
                                             .clickable {
                                                 hour = time.first
                                                 minute = time.second
+                                                second = 0
                                             }
                                             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                                     ) {
@@ -414,6 +469,108 @@ fun ReminderDialog(
                                             style = MaterialTheme.typography.labelSmall
                                         )
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    // PRESETS "FROM NOW" (USER REQUESTED: compatible with ANY
+                    // kind of reminder, including short game events and AFK
+                    // timers that fire seconds/minutes from now).
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "¿Empezar dentro de...? (presets rápidos)",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Toca un botón para programar el recordatorio desde AHORA. Ideal para eventos de juegos (Minecraft, Adopt Me, Free Fire) y chequeos AFK.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            // First row of quick presets
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                data class Preset(val label: String, val seconds: Long)
+                                listOf(
+                                    Preset("30 s", 30L),
+                                    Preset("1 min", 60L),
+                                    Preset("2 min", 120L),
+                                    Preset("5 min", 300L),
+                                    Preset("10 min", 600L),
+                                    Preset("15 min", 900L),
+                                    Preset("30 min", 1800L),
+                                    Preset("1 h", 3600L),
+                                    Preset("2 h", 7200L),
+                                    Preset("4 h", 14400L),
+                                    Preset("8 h", 28800L),
+                                    Preset("12 h", 43200L),
+                                    Preset("1 día", 86400L),
+                                    Preset("2 días", 172800L),
+                                    Preset("1 semana", 604800L),
+                                    Preset("1 mes", 2592000L)
+                                ).forEach { preset ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surface,
+                                        modifier = Modifier
+                                            .clickable {
+                                                val target = Calendar.getInstance().apply {
+                                                    add(Calendar.SECOND, preset.seconds.toInt())
+                                                }
+                                                year = target.get(Calendar.YEAR)
+                                                month = target.get(Calendar.MONTH) + 1
+                                                day = target.get(Calendar.DAY_OF_MONTH)
+                                                hour = target.get(Calendar.HOUR_OF_DAY)
+                                                minute = target.get(Calendar.MINUTE)
+                                                second = target.get(Calendar.SECOND)
+                                                // Setting an offset also marks this as a
+                                                // good custom template (relative).
+                                                templateOffsetMinutes = preset.seconds / 60L
+                                            }
+                                            .border(
+                                                1.dp,
+                                                MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .testTag("preset_${preset.label}")
+                                    ) {
+                                        Text(
+                                            text = preset.label,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                            if (templateOffsetMinutes > 0L) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = "Plantilla sugerida: dentro de $templateOffsetMinutes min (relativa a ahora)",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                         }
@@ -699,7 +856,7 @@ fun ReminderDialog(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    text = "Tomar cada:",
+                                    text = "Repetir cada:",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -710,11 +867,43 @@ fun ReminderDialog(
                                         modifier = Modifier.clickable { intervalHours = hrs }
                                     ) {
                                         Text(
-                                            text = "$hrs horas",
+                                            text = "$hrs h",
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = if (intervalHours == hrs) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // If INTERVAL_MINUTES chosen (for game events / AFK)
+                        AnimatedVisibility(visible = selectedRecurrence == RecurrenceType.INTERVAL_MINUTES) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Repetir cada:",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                listOf(1, 5, 10, 15, 30, 45, 60, 90).forEach { mins ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (intervalMinutes == mins) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.clickable { intervalMinutes = mins }
+                                    ) {
+                                        Text(
+                                            text = "$mins m",
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (intervalMinutes == mins) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -741,7 +930,7 @@ fun ReminderDialog(
                             )
                             Column {
                                 Text(
-                                    text = "Primer aviso: ${DateUtils.formatDate(year, month, day)} a las ${DateUtils.formatTime(hour, minute)}",
+                                    text = "Primer aviso: ${DateUtils.formatDate(year, month, day)} a las ${DateUtils.formatTime(hour, minute, second)}",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -771,6 +960,41 @@ fun ReminderDialog(
                         Text("Cancelar")
                     }
 
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    // "Save as template" — does NOT create a reminder, just
+                    // stores the form as a reusable template the user can
+                    // tap from the Plantillas section later.
+                    OutlinedButton(
+                        onClick = {
+                            if (title.isBlank()) {
+                                titleError = true
+                            } else {
+                                onSaveAsTemplate(
+                                    title,
+                                    description,
+                                    selectedCategory,
+                                    selectedPriority,
+                                    year,
+                                    month,
+                                    day,
+                                    hour,
+                                    minute,
+                                    second,
+                                    selectedRecurrence,
+                                    intervalHours,
+                                    intervalMinutes,
+                                    templateOffsetMinutes
+                                )
+                                showSaveAsTemplateFeedback = true
+                            }
+                        },
+                        modifier = Modifier.testTag("dialog_save_template_button"),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("📌 Plantilla", fontWeight = FontWeight.Bold)
+                    }
+
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Button(
@@ -788,8 +1012,10 @@ fun ReminderDialog(
                                     day,
                                     hour,
                                     minute,
+                                    second,
                                     selectedRecurrence,
-                                    intervalHours
+                                    intervalHours,
+                                    intervalMinutes
                                 )
                             }
                         },
@@ -798,6 +1024,24 @@ fun ReminderDialog(
                     ) {
                         Text(
                             text = if (initialReminder == null) "Crear Recordatorio" else "Guardar Cambios",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                AnimatedVisibility(visible = showSaveAsTemplateFeedback) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    ) {
+                        Text(
+                            text = "Plantilla guardada. Encuéntrala en la sección Plantillas Custom (arriba de tu lista).",
+                            modifier = Modifier.padding(10.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
                             fontWeight = FontWeight.Bold
                         )
                     }
