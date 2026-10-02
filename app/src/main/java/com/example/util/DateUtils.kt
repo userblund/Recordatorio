@@ -11,20 +11,31 @@ object DateUtils {
         "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
     )
 
-    fun computeTriggerMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long {
+    fun computeTriggerMillis(
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int,
+        minute: Int,
+        second: Int = 0
+    ): Long {
         val cal = Calendar.getInstance()
         cal.set(Calendar.YEAR, year)
         cal.set(Calendar.MONTH, (month - 1).coerceIn(0, 11))
         cal.set(Calendar.DAY_OF_MONTH, day.coerceIn(1, 31))
         cal.set(Calendar.HOUR_OF_DAY, hour.coerceIn(0, 23))
         cal.set(Calendar.MINUTE, minute.coerceIn(0, 59))
-        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.SECOND, second.coerceIn(0, 59))
         cal.set(Calendar.MILLISECOND, 0)
         return cal.timeInMillis
     }
 
-    fun formatTime(hour: Int, minute: Int): String {
-        return String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+    fun formatTime(hour: Int, minute: Int, second: Int = 0): String {
+        return if (second > 0) {
+            String.format(Locale.getDefault(), "%02d:%02d:%02d", hour, minute, second)
+        } else {
+            String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+        }
     }
 
     fun formatDate(year: Int, month: Int, day: Int): String {
@@ -51,12 +62,14 @@ object DateUtils {
             }
         }
 
-        val totalMinutes = diff / (1000 * 60)
+        val totalSeconds = diff / 1000
+        val totalMinutes = totalSeconds / 60
         val totalHours = totalMinutes / 60
         val totalDays = totalHours / 24
         val totalYears = (totalDays / 365.25).toLong()
 
         return when {
+            totalSeconds < 60 -> "En $totalSeconds s"
             totalMinutes < 1 -> "En menos de 1 min"
             totalMinutes < 60 -> "En $totalMinutes min"
             totalHours < 24 -> {
@@ -97,7 +110,9 @@ object DateUtils {
         hour: Int,
         minute: Int,
         recurrenceType: RecurrenceType,
-        intervalHours: Int = 8
+        intervalHours: Int = 8,
+        intervalMinutes: Int = 0,
+        second: Int = 0
     ): NextScheduledDate {
         val cal = Calendar.getInstance()
         cal.set(Calendar.YEAR, currentYear)
@@ -105,7 +120,7 @@ object DateUtils {
         cal.set(Calendar.DAY_OF_MONTH, currentDay)
         cal.set(Calendar.HOUR_OF_DAY, hour)
         cal.set(Calendar.MINUTE, minute)
-        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.SECOND, second)
         cal.set(Calendar.MILLISECOND, 0)
 
         when (recurrenceType) {
@@ -133,6 +148,9 @@ object DateUtils {
             RecurrenceType.INTERVAL_HOURS -> {
                 cal.add(Calendar.HOUR_OF_DAY, intervalHours.coerceAtLeast(1))
             }
+            RecurrenceType.INTERVAL_MINUTES -> {
+                cal.add(Calendar.MINUTE, intervalMinutes.coerceAtLeast(1))
+            }
         }
 
         val newYear = cal.get(Calendar.YEAR)
@@ -140,6 +158,7 @@ object DateUtils {
         val newDay = cal.get(Calendar.DAY_OF_MONTH)
         val newHour = cal.get(Calendar.HOUR_OF_DAY)
         val newMinute = cal.get(Calendar.MINUTE)
+        val newSecond = cal.get(Calendar.SECOND)
         val newMillis = cal.timeInMillis
 
         return NextScheduledDate(
@@ -148,6 +167,7 @@ object DateUtils {
             day = newDay,
             hour = newHour,
             minute = newMinute,
+            second = newSecond,
             triggerMillis = newMillis
         )
     }
@@ -158,6 +178,7 @@ object DateUtils {
         val day: Int,
         val hour: Int,
         val minute: Int,
+        val second: Int = 0,
         val triggerMillis: Long
     )
 }

@@ -4,11 +4,17 @@ import com.example.util.DateUtils
 import kotlinx.coroutines.flow.Flow
 import java.util.Calendar
 
-class ReminderRepository(private val reminderDao: ReminderDao) {
+class ReminderRepository(
+    private val reminderDao: ReminderDao,
+    private val customTemplateDao: CustomTemplateDao
+) {
 
     val allReminders: Flow<List<ReminderEntity>> = reminderDao.getAllReminders()
     val activeReminders: Flow<List<ReminderEntity>> = reminderDao.getActiveReminders()
     val completedReminders: Flow<List<ReminderEntity>> = reminderDao.getCompletedReminders()
+
+    // Custom templates the user has saved
+    val allCustomTemplates: Flow<List<CustomTemplateEntity>> = customTemplateDao.getAllCustomTemplates()
 
     suspend fun getReminderById(id: Long): ReminderEntity? = reminderDao.getReminderById(id)
 
@@ -35,7 +41,9 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
                     hour = reminder.hour,
                     minute = reminder.minute,
                     recurrenceType = recurrence,
-                    intervalHours = reminder.recurrenceIntervalHours
+                    intervalHours = reminder.recurrenceIntervalHours,
+                    intervalMinutes = reminder.recurrenceIntervalMinutes,
+                    second = reminder.second
                 )
 
                 // If the phone was off, the app was stopped, or the user
@@ -52,7 +60,9 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
                         hour = next.hour,
                         minute = next.minute,
                         recurrenceType = recurrence,
-                        intervalHours = reminder.recurrenceIntervalHours
+                        intervalHours = reminder.recurrenceIntervalHours,
+                        intervalMinutes = reminder.recurrenceIntervalMinutes,
+                        second = next.second
                     )
                     guard++
                 }
@@ -63,6 +73,7 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
                     day = next.day,
                     hour = next.hour,
                     minute = next.minute,
+                    second = next.second,
                     triggerTimeMillis = next.triggerMillis,
                     isCompleted = false,
                     completedAtMillis = now
@@ -92,6 +103,20 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
         reminderDao.update(updated)
     }
 
+    // ----- Custom templates ---------------------------------------------------
+
+    suspend fun getCustomTemplateById(id: Long): CustomTemplateEntity? =
+        customTemplateDao.getById(id)
+
+    suspend fun saveCustomTemplate(template: CustomTemplateEntity): Long =
+        customTemplateDao.insert(template)
+
+    suspend fun deleteCustomTemplate(template: CustomTemplateEntity) =
+        customTemplateDao.delete(template)
+
+    suspend fun deleteCustomTemplateById(id: Long) =
+        customTemplateDao.deleteById(id)
+
     suspend fun populateDefaultsIfEmpty() {
         val cal = Calendar.getInstance()
         val curYear = cal.get(Calendar.YEAR)
@@ -110,7 +135,8 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
                 day = curDay,
                 hour = 9,
                 minute = 0,
-                triggerTimeMillis = DateUtils.computeTriggerMillis(curYear, curMonth, curDay, 9, 0),
+                second = 0,
+                triggerTimeMillis = DateUtils.computeTriggerMillis(curYear, curMonth, curDay, 9, 0, 0),
                 recurrenceType = RecurrenceType.DAILY.id,
                 soundEnabled = true,
                 vibrationEnabled = true
@@ -125,7 +151,8 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
                 day = curDay,
                 hour = 13,
                 minute = 30,
-                triggerTimeMillis = DateUtils.computeTriggerMillis(curYear, curMonth, curDay, 13, 30),
+                second = 0,
+                triggerTimeMillis = DateUtils.computeTriggerMillis(curYear, curMonth, curDay, 13, 30, 0),
                 recurrenceType = RecurrenceType.DAILY.id,
                 soundEnabled = true,
                 vibrationEnabled = true
@@ -140,7 +167,8 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
                 day = curDay,
                 hour = 22,
                 minute = 0,
-                triggerTimeMillis = DateUtils.computeTriggerMillis(curYear, curMonth, curDay, 22, 0),
+                second = 0,
+                triggerTimeMillis = DateUtils.computeTriggerMillis(curYear, curMonth, curDay, 22, 0, 0),
                 recurrenceType = RecurrenceType.DAILY.id,
                 soundEnabled = true,
                 vibrationEnabled = true
@@ -155,7 +183,8 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
                 day = 1,
                 hour = 12,
                 minute = 0,
-                triggerTimeMillis = DateUtils.computeTriggerMillis(2500, 1, 1, 12, 0),
+                second = 0,
+                triggerTimeMillis = DateUtils.computeTriggerMillis(2500, 1, 1, 12, 0, 0),
                 recurrenceType = RecurrenceType.ONCE.id,
                 soundEnabled = true,
                 vibrationEnabled = true

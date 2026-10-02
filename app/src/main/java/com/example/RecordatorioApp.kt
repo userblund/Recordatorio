@@ -15,7 +15,12 @@ class RecordatorioApp : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val database by lazy { AppDatabase.getDatabase(this) }
-    val repository by lazy { ReminderRepository(database.reminderDao()) }
+    val repository by lazy {
+        ReminderRepository(
+            reminderDao = database.reminderDao(),
+            customTemplateDao = database.customTemplateDao()
+        )
+    }
 
     override fun onCreate() {
         super.onCreate()
