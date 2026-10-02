@@ -367,8 +367,9 @@ class ReminderViewModel(
                 hour = c.get(Calendar.HOUR_OF_DAY),
                 minute = c.get(Calendar.MINUTE),
                 second = c.get(Calendar.SECOND),
-                recurrenceType = RecurrenceType.INTERVAL_MINUTES,
-                recurrenceIntervalMinutes = 1
+                recurrenceType = RecurrenceType.GENERIC_INTERVAL,
+                recurrenceIntervalValue = seconds.toLong().coerceAtLeast(1L),
+                recurrenceIntervalUnit = IntervalUnit.SECOND
             )
         }
 
