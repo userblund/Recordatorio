@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Brightness7
+import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -129,7 +131,7 @@ fun OverviewHeader(
                                 .size(40.dp)
                         ) {
                             Icon(
-                                imageVector = if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                imageVector = if (darkTheme) Icons.Default.Brightness7 else Icons.Default.Brightness4,
                                 contentDescription = if (darkTheme) "Cambiar a modo claro" else "Cambiar a modo oscuro",
                                 tint = MaterialTheme.colorScheme.primary
                             )
