@@ -134,7 +134,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             // The notification still provides the alert if the foreground
             // service cannot be started on this device.
         }
-        showInitialNotification(context, reminderId, title, message, category)
+        showInitialNotification(context, reminderId, title, message, category, isTestAlarm)
     }
 
     private fun stopAlarmForReminder(context: Context, reminderId: Long) {
@@ -149,7 +149,8 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         reminderId: Long,
         title: String,
         message: String,
-        category: String
+        category: String,
+        isTestAlarm: Boolean
     ) {
         val notification = NotificationCompat.Builder(context, ReminderScheduler.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -168,8 +169,12 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
                     action(context, reminderId, ACTION_ACKNOWLEDGE, "OK", title, message, category, 10)
                 }
             )
-            .addAction(action(context, reminderId, ACTION_DELAY, "5 min", title, message, category, 5))
-            .addAction(action(context, reminderId, ACTION_DELAY, "30 min", title, message, category, 30))
+            .apply {
+                if (!isTestAlarm) {
+                    addAction(action(context, reminderId, ACTION_DELAY, "5 min", title, message, category, 5))
+                    addAction(action(context, reminderId, ACTION_DELAY, "30 min", title, message, category, 30))
+                }
+            }
             .build()
 
         notify(context, reminderId, notification)
