@@ -26,7 +26,16 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         when (intent.action) {
             ACTION_STOP_TEST_ALARM -> {
                 stopAlarmForReminder(context, reminderId)
+                ReminderScheduler.cancelTestAlarm(context)
                 manager.cancel(notificationId(reminderId))
+                return
+            }
+
+            ACTION_DELAY_TEST_ALARM -> {
+                stopAlarmForReminder(context, reminderId)
+                manager.cancel(notificationId(reminderId))
+                val minutes = intent.getIntExtra(EXTRA_MINUTES, 10).coerceIn(1, 10080)
+                ReminderScheduler.scheduleTestAlarm(context, minutes)
                 return
             }
 
@@ -170,7 +179,9 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
                 }
             )
             .apply {
-                if (!isTestAlarm) {
+                if (isTestAlarm) {
+                    addAction(action(context, reminderId, ACTION_DELAY_TEST_ALARM, "10 min", title, message, category, 10))
+                } else {
                     addAction(action(context, reminderId, ACTION_DELAY, "5 min", title, message, category, 5))
                     addAction(action(context, reminderId, ACTION_DELAY, "30 min", title, message, category, 30))
                 }
@@ -376,6 +387,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_SHOW_REMINDER = "com.example.ACTION_SHOW_REMINDER"
         const val ACTION_STOP_TEST_ALARM = "com.example.ACTION_STOP_TEST_ALARM"
+    const val ACTION_DELAY_TEST_ALARM = "com.example.ACTION_DELAY_TEST_ALARM"
         const val ACTION_DISMISS_ALARM = "com.example.ACTION_DISMISS_ALARM"
         const val ACTION_ACKNOWLEDGE = "com.example.ACTION_ACKNOWLEDGE"
         const val ACTION_COMPLETED_YES = "com.example.ACTION_COMPLETED_YES"
