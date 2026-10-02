@@ -47,5 +47,7 @@ data class CustomTemplateEntity(
     val recurrenceType: String = RecurrenceType.ONCE.id,
     val recurrenceIntervalHours: Int = 8,
     val recurrenceIntervalMinutes: Int = 0,
+    val recurrenceIntervalValue: Long = 1L,
+    val recurrenceIntervalUnit: String = IntervalUnit.MINUTE.id,
     val createdAtMillis: Long = System.currentTimeMillis()
 )
