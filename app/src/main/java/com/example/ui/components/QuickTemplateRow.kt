@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.text.style.TextOverflow
 
 data class QuickTemplateItem(
@@ -216,6 +217,7 @@ val QUICK_TEMPLATES = listOf(
     QuickTemplateItem("ANNUAL_ANNIVERSARY", "Aniversario anual", "🎉")
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun QuickTemplateRow(
     onSelectTemplate: (String) -> Unit,
