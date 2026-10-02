@@ -20,7 +20,9 @@ data class ReminderEntity(
     val triggerTimeMillis: Long,
     val recurrenceType: String = RecurrenceType.ONCE.id,
     val recurrenceIntervalHours: Int = 8,
-    val recurrenceIntervalMinutes: Int = 0, // used when recurrenceType == INTERVAL_MINUTES
+    val recurrenceIntervalMinutes: Int = 0, // legacy compatibility
+    val recurrenceIntervalValue: Long = 1L,
+    val recurrenceIntervalUnit: String = IntervalUnit.MINUTE.id,
     val isCompleted: Boolean = false,
     val completedAtMillis: Long? = null,
     val createdAtMillis: Long = System.currentTimeMillis(),
