@@ -146,6 +146,55 @@ object ReminderScheduler {
         }
     }
 
+
+    fun scheduleTestAlarm(context: Context, delayMinutes: Int) {
+        val minutes = delayMinutes.coerceIn(1, 10080)
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        val testIntent = Intent(context, ReminderNotificationReceiver::class.java).apply {
+            action = ReminderNotificationReceiver.ACTION_SHOW_REMINDER
+            putExtra(ReminderNotificationReceiver.EXTRA_REMINDER_ID, 99999L)
+            putExtra(ReminderNotificationReceiver.EXTRA_TITLE, "Prueba de recordatorio")
+            putExtra(
+                ReminderNotificationReceiver.EXTRA_MESSAGE,
+                "Prueba pospuesta: vuelve a sonar en " + minutes + " minuto(s)."
+            )
+            putExtra(ReminderNotificationReceiver.EXTRA_CATEGORY, ReminderCategory.PERSONAL.id)
+            putExtra(ReminderNotificationReceiver.EXTRA_IS_TEST_ALARM, true)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            TEST_ALARM_REQUEST_CODE,
+            testIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val triggerAt = System.currentTimeMillis() + minutes * 60_000L
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            }
+        } catch (e: Exception) {
+            Log.w("ReminderScheduler", "Could not schedule test alarm: " + e.message)
+        }
+    }
+
+    fun cancelTestAlarm(context: Context) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        val intent = Intent(context, ReminderNotificationReceiver::class.java).apply {
+            action = ReminderNotificationReceiver.ACTION_SHOW_REMINDER
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            TEST_ALARM_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+    }
+
+    private const val TEST_ALARM_REQUEST_CODE = 99999
+
     private fun alarmRequestCode(reminderId: Long): Int =
         (reminderId xor (reminderId ushr 32)).toInt() and 0x7fffffff
 }
