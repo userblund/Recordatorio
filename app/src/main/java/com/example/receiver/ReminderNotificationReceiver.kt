@@ -184,11 +184,18 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_CATEGORY, category)
         }
+        // IMPORTANT (Android 12+ / API 31+): PendingIntents that carry a
+        // RemoteInput action MUST be FLAG_MUTABLE so the system can attach
+        // the user's reply text into the Intent's extras before dispatching.
+        // Using FLAG_IMMUTABLE here throws:
+        //   IllegalArgumentException: PendingIntents attached to actions with
+        //   remote inputs must be mutable
+        // and crashes ReminderNotificationReceiver.showConfirmation.
         val replyPending = PendingIntent.getBroadcast(
             context,
             requestCode(reminderId, 9000),
             replyIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
 
         val question = if (error != null) "$error ¿Completaste «$title»?" else "¿Completaste «$title»?"
@@ -236,11 +243,16 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_CATEGORY, category)
         }
+        // IMPORTANT (Android 12+ / API 31+): This PendingIntent carries a
+        // RemoteInput ("Minutos hasta el próximo recordatorio"), so it MUST
+        // be FLAG_MUTABLE or the system will reject the notification with:
+        //   IllegalArgumentException: PendingIntents attached to actions with
+        //   remote inputs must be mutable
         val customPending = PendingIntent.getBroadcast(
             context,
             requestCode(reminderId, 7000),
             customIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
 
         val notificationBuilder = NotificationCompat.Builder(context, ReminderScheduler.CHANNEL_ID)
