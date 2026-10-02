@@ -103,7 +103,7 @@ class AlarmSoundService : Service() {
         const val EXTRA_CATEGORY = "extra_alarm_service_category"
 
         const val CHANNEL_ID = "recordatorio_alarm_service_channel"
-        private const val SERVICE_NOTIFICATION_ID = 0x524543
+        const val SERVICE_NOTIFICATION_ID = 0x524543
 
         fun start(context: android.content.Context, reminderId: Long, title: String, message: String, category: String) {
             val intent = Intent(context, AlarmSoundService::class.java).apply {
