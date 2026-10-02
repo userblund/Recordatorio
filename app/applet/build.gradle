@@ -1,0 +1,8 @@
+// Placeholder Gradle build for AI Studio applet mode.
+// The real Android project lives at the repository root.
+tasks.register('build') {
+    // No-op
+}
+tasks.register('assemble') {
+    // No-op
+}
