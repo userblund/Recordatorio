@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -101,19 +103,38 @@ class MainActivity : ComponentActivity() {
         val repository = app.repository
 
         setContent {
-            RecordatorioTheme {
+            val themePreferences = remember {
+                getSharedPreferences("recordatorio_ui", MODE_PRIVATE)
+            }
+            var darkTheme by remember {
+                mutableStateOf(themePreferences.getBoolean("dark_theme", false))
+            }
+
+            RecordatorioTheme(darkTheme = darkTheme, dynamicColor = false) {
                 val viewModel: ReminderViewModel = viewModel(
                     factory = ReminderViewModel.provideFactory(repository, applicationContext)
                 )
 
-                RecordatorioMainScreen(viewModel = viewModel)
+                RecordatorioMainScreen(
+                    viewModel = viewModel,
+                    darkTheme = darkTheme,
+                    onToggleTheme = {
+                        val next = !darkTheme
+                        darkTheme = next
+                        themePreferences.edit().putBoolean("dark_theme", next).apply()
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
+fun RecordatorioMainScreen(
+    viewModel: ReminderViewModel,
+    darkTheme: Boolean,
+    onToggleTheme: () -> Unit
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -213,6 +234,8 @@ fun RecordatorioMainScreen(viewModel: ReminderViewModel) {
                 item(key = "header_overview") {
                     OverviewHeader(
                         stats = todayStats,
+                        darkTheme = darkTheme,
+                        onToggleTheme = onToggleTheme,
                         onTestAlarm = {
                             viewModel.triggerTestAlarm()
                             scope.launch {
