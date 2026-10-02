@@ -1,5 +1,6 @@
 package com.example.util
 
+import com.example.data.IntervalUnit
 import com.example.data.RecurrenceType
 import java.util.Calendar
 import java.util.Locale
@@ -112,7 +113,9 @@ object DateUtils {
         recurrenceType: RecurrenceType,
         intervalHours: Int = 8,
         intervalMinutes: Int = 0,
-        second: Int = 0
+        second: Int = 0,
+        intervalValue: Long = 1L,
+        intervalUnit: IntervalUnit = IntervalUnit.MINUTE
     ): NextScheduledDate {
         val cal = Calendar.getInstance()
         cal.set(Calendar.YEAR, currentYear)
@@ -150,6 +153,22 @@ object DateUtils {
             }
             RecurrenceType.INTERVAL_MINUTES -> {
                 cal.add(Calendar.MINUTE, intervalMinutes.coerceAtLeast(1))
+            }
+            RecurrenceType.GENERIC_INTERVAL -> {
+                val amount = intervalValue.coerceAtLeast(1L)
+                when (intervalUnit) {
+                    IntervalUnit.SECOND -> cal.add(Calendar.SECOND, amount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    IntervalUnit.MINUTE -> cal.add(Calendar.MINUTE, amount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    IntervalUnit.HOUR -> cal.add(Calendar.HOUR_OF_DAY, amount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    IntervalUnit.DAY -> cal.add(Calendar.DAY_OF_MONTH, amount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    IntervalUnit.WEEK -> cal.add(Calendar.WEEK_OF_YEAR, amount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    IntervalUnit.MONTH -> cal.add(Calendar.MONTH, amount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    IntervalUnit.YEAR -> cal.add(Calendar.YEAR, amount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    IntervalUnit.CENTURY -> {
+                        val years = (amount * 100L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                        cal.add(Calendar.YEAR, years)
+                    }
+                }
             }
         }
 
