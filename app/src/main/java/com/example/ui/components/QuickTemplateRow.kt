@@ -223,14 +223,14 @@ fun QuickTemplateRow(
     onSelectTemplate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showAll by remember { mutableStateOf(false) }
+
     FlowRow(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 2.dp),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        QUICK_TEMPLATES.forEach { item ->
+        QUICK_TEMPLATES.take(8).forEach { item ->
             AssistChip(
                 onClick = { onSelectTemplate(item.id) },
                 label = {
@@ -241,12 +241,7 @@ fun QuickTemplateRow(
                         fontSize = 12.sp
                     )
                 },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null
-                    )
-                },
+                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                 shape = RoundedCornerShape(10.dp),
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -256,5 +251,49 @@ fun QuickTemplateRow(
                 modifier = Modifier.testTag("quick_template_${item.id}")
             )
         }
+
+        AssistChip(
+            onClick = { showAll = true },
+            label = { Text("Ver todas", fontSize = 12.sp) },
+            leadingIcon = { Icon(Icons.Default.Apps, contentDescription = null) },
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.testTag("quick_templates_all")
+        )
+    }
+
+    if (showAll) {
+        AlertDialog(
+            onDismissRequest = { showAll = false },
+            title = { Text("Todas las plantillas") },
+            text = {
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    items(QUICK_TEMPLATES.size) { index ->
+                        val item = QUICK_TEMPLATES[index]
+                        TextButton(
+                            onClick = {
+                                showAll = false
+                                onSelectTemplate(item.id)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("quick_template_dialog_${item.id}")
+                        ) {
+                            Text(
+                                text = "${item.emoji} ${item.label}",
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAll = false }) { Text("Cerrar") }
+            }
+        )
     }
 }
