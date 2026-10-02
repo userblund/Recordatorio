@@ -191,12 +191,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         //   IllegalArgumentException: PendingIntents attached to actions with
         //   remote inputs must be mutable
         // and crashes ReminderNotificationReceiver.showConfirmation.
-        val replyPending = PendingIntent.getBroadcast(
-            context,
-            requestCode(reminderId, 9000),
-            replyIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-        )
+        val replyPending = remoteInputPendingIntent(context, reminderId, 9000, replyIntent)
 
         val question = if (error != null) "$error ¿Completaste «$title»?" else "¿Completaste «$title»?"
         val notification = NotificationCompat.Builder(context, ReminderScheduler.CHANNEL_ID)
@@ -248,12 +243,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         // be FLAG_MUTABLE or the system will reject the notification with:
         //   IllegalArgumentException: PendingIntents attached to actions with
         //   remote inputs must be mutable
-        val customPending = PendingIntent.getBroadcast(
-            context,
-            requestCode(reminderId, 7000),
-            customIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-        )
+        val customPending = remoteInputPendingIntent(context, reminderId, 7000, customIntent)
 
         val notificationBuilder = NotificationCompat.Builder(context, ReminderScheduler.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -277,6 +267,22 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
 
         notify(context, reminderId, notificationBuilder.build())
     }
+
+    /** RemoteInput requires a mutable PendingIntent on Android 12+.
+     * Keep this rule centralized so future text/dictation actions cannot
+     * accidentally regress to FLAG_IMMUTABLE and crash notification posting.
+     */
+    private fun remoteInputPendingIntent(
+        context: Context,
+        reminderId: Long,
+        salt: Int,
+        intent: Intent
+    ): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        requestCode(reminderId, salt),
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+    )
 
     private fun finishReminder(context: Context, reminderId: Long) {
         if (reminderId <= 0L) return
