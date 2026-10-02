@@ -46,6 +46,14 @@ class RecordatorioApp : Application() {
             preferences.edit()
                 .putBoolean(KEY_DEFAULTS_INITIALIZED, true)
                 .apply()
+
+            // Rebuild AlarmManager entries whenever the application process starts.
+            // This is important on devices that reclaim the app process in the
+            // background: Room remains the source of truth and the alarms are
+            // restored without requiring the user to open a screen manually.
+            repository.activeReminders.firstOrNull()?.forEach { reminder ->
+                ReminderScheduler.scheduleReminder(this@RecordatorioApp, reminder)
+            }
         }
     }
 
