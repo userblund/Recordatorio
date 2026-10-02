@@ -1087,7 +1087,9 @@ fun ReminderDialog(
                                     second,
                                     selectedRecurrence,
                                     intervalHours,
-                                    intervalMinutes
+                                    intervalMinutes,
+                                    intervalValueText.toLongOrNull()?.coerceAtLeast(1L) ?: 1L,
+                                    intervalUnit
                                 )
                             }
                         },
