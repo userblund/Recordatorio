@@ -46,6 +46,8 @@ import com.example.util.DateUtils
 fun OverviewHeader(
     stats: TodayStats,
     onTestAlarm: () -> Unit,
+    darkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -117,20 +119,36 @@ fun OverviewHeader(
                         }
                     }
 
-                    // Compact test-alarm control: it must not crowd the header.
-                    IconButton(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = onToggleTheme,
+                            modifier = Modifier
+                                .testTag("theme_toggle_button")
+                                .size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                contentDescription = if (darkTheme) "Cambiar a modo claro" else "Cambiar a modo oscuro",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        // Compact test-alarm control: it must not crowd the header.
+                        IconButton(
                         onClick = onTestAlarm,
                         modifier = Modifier
                             .testTag("test_alarm_button")
                             .size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsActive,
-                            contentDescription = "Probar alarma",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = "Probar alarma",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
-
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
