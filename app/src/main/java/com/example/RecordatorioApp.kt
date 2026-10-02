@@ -32,20 +32,18 @@ class RecordatorioApp : Application() {
         // never recreates reminders the user intentionally deleted.
         applicationScope.launch {
             val preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            if (preferences.getBoolean(KEY_DEFAULTS_INITIALIZED, false)) {
-                return@launch
-            }
+            if (!preferences.getBoolean(KEY_DEFAULTS_INITIALIZED, false)) {
+                val existing = repository.allReminders.firstOrNull()
+                if (existing.isNullOrEmpty()) {
+                    repository.populateDefaultsIfEmpty()
+                }
 
-            val existing = repository.allReminders.firstOrNull()
-            if (existing.isNullOrEmpty()) {
-                repository.populateDefaultsIfEmpty()
+                // Mark initialization complete whether defaults were inserted or
+                // the database already contained user data.
+                preferences.edit()
+                    .putBoolean(KEY_DEFAULTS_INITIALIZED, true)
+                    .apply()
             }
-
-            // Mark initialization complete whether defaults were inserted or
-            // the database already contained user data.
-            preferences.edit()
-                .putBoolean(KEY_DEFAULTS_INITIALIZED, true)
-                .apply()
 
             // Rebuild AlarmManager entries whenever the application process starts.
             // This is important on devices that reclaim the app process in the
