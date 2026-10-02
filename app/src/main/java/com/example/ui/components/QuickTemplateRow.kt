@@ -172,6 +172,7 @@ fun QuickTemplateRow(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QuickTemplateLibraryDialog(
     onDismiss: () -> Unit,
