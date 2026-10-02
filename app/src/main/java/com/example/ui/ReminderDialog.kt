@@ -355,11 +355,10 @@ fun ReminderDialog(
                                 )
                             }
 
-                            // Precise H:M:S controls. Each field is directly editable
-                            // so a game event can be scheduled to an exact second.
+                            // Stepper controls for Hour and Minute
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 // Hour
@@ -437,44 +436,6 @@ fun ReminderDialog(
                                         Icon(Icons.Default.Add, contentDescription = "Más seg")
                                     }
                                 }
-                            }
-
-                            // Direct numeric editing for precise scheduling.
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedTextField(
-                                    value = String.format("%02d", hour),
-                                    onValueChange = { value ->
-                                        value.filter(Char::isDigit).take(2).toIntOrNull()?.let { if (it in 0..23) hour = it }
-                                    },
-                                    label = { Text("Hora") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f).testTag("hour_direct_input")
-                                )
-                                OutlinedTextField(
-                                    value = String.format("%02d", minute),
-                                    onValueChange = { value ->
-                                        value.filter(Char::isDigit).take(2).toIntOrNull()?.let { if (it in 0..59) minute = it }
-                                    },
-                                    label = { Text("Min") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f).testTag("minute_direct_input")
-                                )
-                                OutlinedTextField(
-                                    value = String.format("%02d", second),
-                                    onValueChange = { value ->
-                                        value.filter(Char::isDigit).take(2).toIntOrNull()?.let { if (it in 0..59) second = it }
-                                    },
-                                    label = { Text("Seg") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f).testTag("second_direct_input")
-                                )
                             }
 
                             // Quick time presets for meals & meds
