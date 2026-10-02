@@ -178,14 +178,14 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             .setAutoCancel(false)
             .addAction(
                 if (isTestAlarm) {
-                    action(context, reminderId, ACTION_STOP_TEST_ALARM, "DETENER", title, message, category)
+                    action(context, reminderId, ACTION_STOP_TEST_ALARM, "Apagar alarma", title, message, category)
                 } else {
                     action(context, reminderId, ACTION_ACKNOWLEDGE, "OK", title, message, category, 10)
                 }
             )
             .apply {
                 if (isTestAlarm) {
-                    addAction(action(context, reminderId, ACTION_DELAY_TEST_ALARM, "10 min", title, message, category, 10))
+                    addAction(action(context, reminderId, ACTION_DELAY_TEST_ALARM, "Posponer 10 minutos", title, message, category, 10))
                 } else {
                     addAction(action(context, reminderId, ACTION_DELAY, "5 min", title, message, category, 5))
                     addAction(action(context, reminderId, ACTION_DELAY, "30 min", title, message, category, 30))
