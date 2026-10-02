@@ -84,6 +84,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.ReminderEntity
 import com.example.data.CustomTemplateEntity
+import com.example.data.IntervalUnit
 import com.example.ui.AlarmRingingScreen
 import com.example.ui.ReminderDialog
 import com.example.ui.ReminderTab
@@ -596,7 +597,7 @@ fun RecordatorioMainScreen(
                 showReminderDialog = false
                 reminderToEdit = null
             },
-            onSave = { title, description, category, priority, year, month, day, hour, minute, second, recurrenceType, recurrenceIntervalHours, recurrenceIntervalMinutes ->
+            onSave = { title, description, category, priority, year, month, day, hour, minute, second, recurrenceType, recurrenceIntervalHours, recurrenceIntervalMinutes, recurrenceIntervalValue, recurrenceIntervalUnit ->
                 viewModel.saveReminder(
                     id = reminderToEdit?.id ?: 0L,
                     title = title,
@@ -611,7 +612,9 @@ fun RecordatorioMainScreen(
                     second = second,
                     recurrenceType = recurrenceType,
                     recurrenceIntervalHours = recurrenceIntervalHours,
-                    recurrenceIntervalMinutes = recurrenceIntervalMinutes
+                    recurrenceIntervalMinutes = recurrenceIntervalMinutes,
+                    recurrenceIntervalValue = recurrenceIntervalValue,
+                    recurrenceIntervalUnit = recurrenceIntervalUnit
                 )
                 showReminderDialog = false
                 reminderToEdit = null
@@ -619,7 +622,7 @@ fun RecordatorioMainScreen(
                     snackbarHostState.showSnackbar("Recordatorio guardado correctamente.")
                 }
             },
-            onSaveAsTemplate = { title, description, category, priority, year, month, day, hour, minute, second, recurrenceType, recurrenceIntervalHours, recurrenceIntervalMinutes, intervalOffsetMinutes ->
+            onSaveAsTemplate = { title, description, category, priority, year, month, day, hour, minute, second, recurrenceType, recurrenceIntervalHours, recurrenceIntervalMinutes, intervalOffsetMinutes, recurrenceIntervalValue, recurrenceIntervalUnit ->
                 viewModel.saveCurrentAsCustomTemplate(
                     name = title,
                     emoji = "📌",
@@ -636,7 +639,9 @@ fun RecordatorioMainScreen(
                     recurrenceType = recurrenceType,
                     recurrenceIntervalHours = recurrenceIntervalHours,
                     recurrenceIntervalMinutes = recurrenceIntervalMinutes,
-                    intervalOffsetMinutes = intervalOffsetMinutes
+                    intervalOffsetMinutes = intervalOffsetMinutes,
+                    recurrenceIntervalValue = recurrenceIntervalValue,
+                    recurrenceIntervalUnit = recurrenceIntervalUnit
                 )
                 scope.launch {
                     snackbarHostState.showSnackbar("Plantilla guardada arriba en 'Mis Plantillas Custom'.")
