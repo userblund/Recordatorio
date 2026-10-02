@@ -43,7 +43,9 @@ class ReminderRepository(
                     recurrenceType = recurrence,
                     intervalHours = reminder.recurrenceIntervalHours,
                     intervalMinutes = reminder.recurrenceIntervalMinutes,
-                    second = reminder.second
+                    second = reminder.second,
+                    intervalValue = reminder.recurrenceIntervalValue,
+                    intervalUnit = IntervalUnit.fromId(reminder.recurrenceIntervalUnit)
                 )
 
                 // If the phone was off, the app was stopped, or the user
@@ -62,7 +64,9 @@ class ReminderRepository(
                         recurrenceType = recurrence,
                         intervalHours = reminder.recurrenceIntervalHours,
                         intervalMinutes = reminder.recurrenceIntervalMinutes,
-                        second = next.second
+                        second = next.second,
+                        intervalValue = reminder.recurrenceIntervalValue,
+                        intervalUnit = IntervalUnit.fromId(reminder.recurrenceIntervalUnit)
                     )
                     guard++
                 }
