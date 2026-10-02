@@ -2,6 +2,7 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.example.data.IntervalUnit
 import com.example.data.RecurrenceType
 import com.example.util.DateUtils
 import org.junit.Assert.assertEquals
@@ -32,6 +33,36 @@ class ExampleRobolectricTest {
 
     val isFar = DateUtils.isFarFuture(2500)
     assertTrue("Year 2500 is far future", isFar)
+  }
+
+  @Test
+  fun `generic recurrence supports arbitrary values and units`() {
+    val next = DateUtils.computeNextOccurrence(
+      currentYear = 2026,
+      currentMonth = 10,
+      currentDay = 1,
+      hour = 8,
+      minute = 30,
+      recurrenceType = RecurrenceType.GENERIC_INTERVAL,
+      intervalValue = 2,
+      intervalUnit = IntervalUnit.WEEK
+    )
+    assertEquals(15, next.day)
+    assertEquals(10, next.month)
+    assertEquals(8, next.hour)
+    assertEquals(30, next.minute)
+
+    val century = DateUtils.computeNextOccurrence(
+      currentYear = 2026,
+      currentMonth = 10,
+      currentDay = 1,
+      hour = 8,
+      minute = 30,
+      recurrenceType = RecurrenceType.GENERIC_INTERVAL,
+      intervalValue = 2,
+      intervalUnit = IntervalUnit.CENTURY
+    )
+    assertEquals(2226, century.year)
   }
 
   @Test
