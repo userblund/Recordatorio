@@ -26,15 +26,20 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         when (intent.action) {
             ACTION_STOP_TEST_ALARM -> {
                 stopAlarmForReminder(context, reminderId)
+                context.stopService(Intent(context, AlarmSoundService::class.java))
                 ReminderScheduler.cancelTestAlarm(context)
                 manager.cancel(notificationId(reminderId))
+                manager.cancel(AlarmSoundService.SERVICE_NOTIFICATION_ID)
                 return
             }
 
             ACTION_DELAY_TEST_ALARM -> {
                 stopAlarmForReminder(context, reminderId)
+                context.stopService(Intent(context, AlarmSoundService::class.java))
                 manager.cancel(notificationId(reminderId))
+                manager.cancel(AlarmSoundService.SERVICE_NOTIFICATION_ID)
                 val minutes = intent.getIntExtra(EXTRA_MINUTES, 10).coerceIn(1, 10080)
+                ReminderScheduler.cancelTestAlarm(context)
                 ReminderScheduler.scheduleTestAlarm(context, minutes)
                 return
             }
