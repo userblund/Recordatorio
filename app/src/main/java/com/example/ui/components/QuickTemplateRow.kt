@@ -1,18 +1,23 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,206 +27,89 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.ui.text.style.TextOverflow
 
 data class QuickTemplateItem(
     val id: String,
     val label: String,
-    val emoji: String
+    val emoji: String,
+    val category: QuickTemplateCategory
 )
 
-/**
- * Built-in quick templates. The user explicitly requested the MAXIMUM amount
- * of useful templates, so this list is intentionally large and covers:
- *   - Health & meds
- *   - Hydration & meals
- *   - Habits & fitness
- *   - Sleep
- *   - Personal & self-care
- *   - School / study
- *   - Work
- *   - Tech
- *   - Errands / home
- *   - Finance
- *   - Pets & plants
- *   - Social
- *   - Creative
- *   - Travel
- *   - GAMING (the user's primary use case): generic + Minecraft Bedrock +
- *     Adopt Me (Roblox) + Free Fire + Roblox general + AFK short timers
- *   - Far future / infinite (year 2500 / 10000)
- *
- * The IDs here MUST match the `when` branches in
- * `ReminderViewModel.createFromQuickTemplate`.
- */
+enum class QuickTemplateCategory(val label: String) {
+    HEALTH("Salud"),
+    DAILY("Día a día"),
+    STUDY_WORK("Estudio y trabajo"),
+    HOME("Casa"),
+    GAMING("Gaming"),
+    OTHER("Otros")
+}
+
+/* Curated quick library: common useful patterns without catalog bloat. */
 val QUICK_TEMPLATES = listOf(
-    // Health / Meds
-    QuickTemplateItem("MED_MORNING", "Medicamento mañana", "💊"),
-    QuickTemplateItem("MED_LUNCH", "Medicamento mediodía", "💊"),
-    QuickTemplateItem("MED_NIGHT", "Medicamento noche", "💊"),
-    QuickTemplateItem("MED_INTERVAL_4", "Medicamento cada 4h", "💊"),
-    QuickTemplateItem("MED_INTERVAL_6", "Medicamento cada 6h", "💊"),
-    QuickTemplateItem("MED_INTERVAL_8", "Medicamento cada 8h", "💊"),
-    QuickTemplateItem("MED_INTERVAL_12", "Medicamento cada 12h", "💊"),
-    QuickTemplateItem("MED_INTERVAL_24", "Medicamento diario", "💊"),
+    QuickTemplateItem("MED_MORNING", "Medicamento mañana", "💊", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("MED_LUNCH", "Medicamento mediodía", "💊", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("MED_NIGHT", "Medicamento noche", "💊", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("MED_INTERVAL_4", "Medicamento cada 4 h", "💊", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("MED_INTERVAL_8", "Medicamento cada 8 h", "💊", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("MED_INTERVAL_12", "Medicamento cada 12 h", "💊", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("WATER", "Agua cada 2 h", "💧", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("WATER_30M", "Agua cada 30 min", "💧", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("GAMING_WATER", "Agua durante gaming", "🎮💧", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("EYE_BREAK", "Descanso de ojos", "👀", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("STRETCH", "Estiramiento", "🧘", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("EXERCISE", "Ejercicio", "🏃", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("SLEEP", "Prepararse para dormir", "🌙", QuickTemplateCategory.HEALTH),
+    QuickTemplateItem("WAKE", "Despertar", "☀️", QuickTemplateCategory.HEALTH),
 
-    // Hydration & Meals
-    QuickTemplateItem("WATER", "Agua cada 2h", "💧"),
-    QuickTemplateItem("WATER_30M", "Agua cada 30m", "💧"),
-    QuickTemplateItem("WATER_GAMING", "Agua gaming", "💧"),
-    QuickTemplateItem("BREAKFAST", "Desayuno", "🥐"),
-    QuickTemplateItem("LUNCH", "Almuerzo", "🥗"),
-    QuickTemplateItem("DINNER", "Cena", "🍲"),
-    QuickTemplateItem("SNACK", "Snack", "🍎"),
-    QuickTemplateItem("COFFEE", "Pausa de café", "☕"),
-    QuickTemplateItem("COOK", "Cocinar", "👨‍🍳"),
-    QuickTemplateItem("COOK_PREP", "Preparar ingredientes", "🥄"),
+    QuickTemplateItem("BREAKFAST", "Desayuno", "🥐", QuickTemplateCategory.DAILY),
+    QuickTemplateItem("LUNCH", "Almuerzo", "🥗", QuickTemplateCategory.DAILY),
+    QuickTemplateItem("DINNER", "Cena", "🍲", QuickTemplateCategory.DAILY),
+    QuickTemplateItem("SHOWER", "Ducha", "🚿", QuickTemplateCategory.DAILY),
+    QuickTemplateItem("BRUSH_TEETH", "Cepillarse", "🪥", QuickTemplateCategory.DAILY),
+    QuickTemplateItem("CALL_FAMILY", "Llamar familia", "📞", QuickTemplateCategory.DAILY),
+    QuickTemplateItem("APPOINTMENT", "Cita", "📅", QuickTemplateCategory.DAILY),
 
-    // Habits / Fitness
-    QuickTemplateItem("EYE_BREAK", "Descanso de ojos", "👀"),
-    QuickTemplateItem("STRETCH", "Estiramiento", "🧘"),
-    QuickTemplateItem("WALK", "Caminar", "🚶"),
-    QuickTemplateItem("EXERCISE", "Ejercicio", "🏃"),
-    QuickTemplateItem("WORKOUT_30", "Micro-entrenamiento", "💪"),
-    QuickTemplateItem("POSTURE", "Revisar postura", "🪑"),
-    QuickTemplateItem("BREATHING", "Respirar", "🌿"),
-    QuickTemplateItem("MEDITATE", "Pausa tranquila", "🧘‍♂️"),
-    QuickTemplateItem("SUNLIGHT", "Tomar aire/luz", "🌤️"),
+    QuickTemplateItem("STUDY", "Estudiar", "📚", QuickTemplateCategory.STUDY_WORK),
+    QuickTemplateItem("HOMEWORK", "Tarea", "📝", QuickTemplateCategory.STUDY_WORK),
+    QuickTemplateItem("READ", "Leer", "📖", QuickTemplateCategory.STUDY_WORK),
+    QuickTemplateItem("EXAM_PREP", "Repaso de examen", "📋", QuickTemplateCategory.STUDY_WORK),
+    QuickTemplateItem("WORK_START", "Empezar trabajo", "💼", QuickTemplateCategory.STUDY_WORK),
+    QuickTemplateItem("WORK_BREAK", "Pausa de trabajo", "☕", QuickTemplateCategory.STUDY_WORK),
+    QuickTemplateItem("MEETING", "Reunión", "👥", QuickTemplateCategory.STUDY_WORK),
+    QuickTemplateItem("DEADLINE", "Fecha límite", "⏳", QuickTemplateCategory.STUDY_WORK),
 
-    // Sleep
-    QuickTemplateItem("SLEEP", "Prepararse para dormir", "🌙"),
-    QuickTemplateItem("WAKE", "Despertar", "☀️"),
-    QuickTemplateItem("BEDTIME_PHONE", "Alejar el teléfono", "📵"),
+    QuickTemplateItem("CLEAN_ROOM", "Ordenar habitación", "🧹", QuickTemplateCategory.HOME),
+    QuickTemplateItem("LAUNDRY", "Lavar ropa", "👕", QuickTemplateCategory.HOME),
+    QuickTemplateItem("DISHES", "Lavar platos", "🍽️", QuickTemplateCategory.HOME),
+    QuickTemplateItem("TRASH", "Sacar basura", "🗑️", QuickTemplateCategory.HOME),
+    QuickTemplateItem("SHOPPING", "Compras", "🛒", QuickTemplateCategory.HOME),
+    QuickTemplateItem("PET_FOOD", "Alimentar mascota", "🐾", QuickTemplateCategory.HOME),
+    QuickTemplateItem("PLANTS", "Regar plantas", "🪴", QuickTemplateCategory.HOME),
 
-    // Personal
-    QuickTemplateItem("SHOWER", "Ducha", "🚿"),
-    QuickTemplateItem("BRUSH_TEETH", "Cepillarse", "🪥"),
-    QuickTemplateItem("BRUSH_TEETH_NIGHT", "Cepillarse noche", "🪥"),
-    QuickTemplateItem("SKINCARE", "Cuidado personal", "🧴"),
+    QuickTemplateItem("GAMING_BREAK", "Pausa gaming", "🎮⏸️", QuickTemplateCategory.GAMING),
+    QuickTemplateItem("GAMING_EYES", "Descanso ojos gaming", "🎮👀", QuickTemplateCategory.GAMING),
+    QuickTemplateItem("GAMING_POSTURE", "Postura gaming", "🪑🎮", QuickTemplateCategory.GAMING),
+    QuickTemplateItem("GAME_DAILY_QUEST", "Misiones diarias", "🎯", QuickTemplateCategory.GAMING),
+    QuickTemplateItem("GAME_EVENT_LIVE", "Evento del juego", "🎉", QuickTemplateCategory.GAMING),
+    QuickTemplateItem("AFK_30S", "Temporizador 30 s", "⏱️", QuickTemplateCategory.GAMING),
+    QuickTemplateItem("AFK_1M", "Temporizador 1 min", "⏱️", QuickTemplateCategory.GAMING),
+    QuickTemplateItem("QUICK_BREAK_2M", "Pausa 2 min", "⚡", QuickTemplateCategory.GAMING),
 
-    // School / Study
-    QuickTemplateItem("STUDY", "Estudiar", "📚"),
-    QuickTemplateItem("HOMEWORK", "Tarea", "📝"),
-    QuickTemplateItem("READ", "Leer", "📖"),
-    QuickTemplateItem("BREAK_STUDY", "Pausa de estudio", "⏸️"),
-    QuickTemplateItem("EXAM_PREP", "Repaso de examen", "📋"),
+    QuickTemplateItem("BACKUP", "Copia de seguridad", "💾", QuickTemplateCategory.OTHER),
+    QuickTemplateItem("CHARGE_PHONE", "Cargar teléfono", "🔋", QuickTemplateCategory.OTHER),
+    QuickTemplateItem("BILL", "Pagar cuenta", "💳", QuickTemplateCategory.OTHER),
+    QuickTemplateItem("BIRTHDAY", "Cumpleaños", "🎂", QuickTemplateCategory.OTHER),
+    QuickTemplateItem("TRAVEL", "Preparar viaje", "🧳", QuickTemplateCategory.OTHER),
+    QuickTemplateItem("CAPSULE_2500", "Cápsula 2500", "🚀", QuickTemplateCategory.OTHER),
+    QuickTemplateItem("YEAR_10000", "Meta año 10000", "🌌", QuickTemplateCategory.OTHER)
+)
 
-    // Work
-    QuickTemplateItem("WORK_START", "Empezar trabajo", "💼"),
-    QuickTemplateItem("WORK_BREAK", "Pausa de trabajo", "☕"),
-    QuickTemplateItem("MEETING", "Reunión", "👥"),
-    QuickTemplateItem("DEADLINE", "Fecha límite", "⏳"),
-
-    // Tech
-    QuickTemplateItem("BACKUP", "Copia de seguridad", "💾"),
-    QuickTemplateItem("UPDATE", "Buscar actualizaciones", "🔄"),
-    QuickTemplateItem("CHARGE_PHONE", "Cargar teléfono", "🔋"),
-    QuickTemplateItem("CLEAN_STORAGE", "Limpiar almacenamiento", "🗃️"),
-
-    // Errands / Home
-    QuickTemplateItem("CLEAN_ROOM", "Ordenar habitación", "🧹"),
-    QuickTemplateItem("LAUNDRY", "Lavar ropa", "👕"),
-    QuickTemplateItem("DISHES", "Lavar platos", "🍽️"),
-    QuickTemplateItem("TRASH", "Sacar basura", "🗑️"),
-    QuickTemplateItem("SHOPPING", "Compras", "🛒"),
-    QuickTemplateItem("KEYS", "Revisar llaves", "🔑"),
-    QuickTemplateItem("PACK_BAG", "Preparar mochila", "🎒"),
-
-    // Finance
-    QuickTemplateItem("BILL", "Pagar cuenta", "💳"),
-    QuickTemplateItem("SAVE_MONEY", "Revisar ahorro", "💰"),
-    QuickTemplateItem("SUBSCRIPTION", "Revisar suscripciones", "📊"),
-    QuickTemplateItem("BUDGET_CHECK", "Revisar presupuesto", "📈"),
-
-    // Pets & Plants
-    QuickTemplateItem("PET_FOOD", "Alimentar mascota", "🐾"),
-    QuickTemplateItem("PET_WALK", "Pasear mascota", "🦮"),
-    QuickTemplateItem("PET_MED", "Medicamento mascota", "💊"),
-    QuickTemplateItem("PLANTS", "Regar plantas", "🪴"),
-
-    // Social
-    QuickTemplateItem("CALL_FAMILY", "Llamar familia", "📞"),
-    QuickTemplateItem("MESSAGE", "Enviar mensaje", "💬"),
-    QuickTemplateItem("APPOINTMENT", "Cita", "📅"),
-    QuickTemplateItem("BIRTHDAY", "Cumpleaños", "🎂"),
-
-    // Creative
-    QuickTemplateItem("CONTENT", "Crear contenido", "🎬"),
-    QuickTemplateItem("MUSIC", "Práctica de música", "🎵"),
-    QuickTemplateItem("CREATIVE", "Proyecto creativo", "🎨"),
-    QuickTemplateItem("STREAM_START", "Empezar stream", "📺"),
-    QuickTemplateItem("STREAM_BREAK", "Pausa del stream", "🎥"),
-
-    // Travel
-    QuickTemplateItem("TRAVEL", "Preparar viaje", "🧳"),
-
-    // ----- GAMING (the user's primary use case) -----
-    QuickTemplateItem("GAMING_WATER", "Agua gaming", "🎮💧"),
-    QuickTemplateItem("GAMING_BREAK", "Pausa gaming", "🎮⏸️"),
-    QuickTemplateItem("GAMING_EYES", "Descanso ojos gaming", "🎮👀"),
-    QuickTemplateItem("SAVE_GAME", "Guardar partida", "🎮💾"),
-    QuickTemplateItem("SERVER_CHECK", "Revisar servidor", "🖥️"),
-    QuickTemplateItem("AFK_WARNING", "Revisar AFK 15m", "⚠️"),
-    QuickTemplateItem("GAMING_POSTURE", "Postura gaming", "🪑🎮"),
-    QuickTemplateItem("GAME_DAILY_QUEST", "Misiones diarias", "🎯"),
-    QuickTemplateItem("GAME_WEEKLY_RESET", "Reset semanal", "🗓️"),
-    QuickTemplateItem("GAME_EVENT_LIVE", "Evento activo", "🎉"),
-    QuickTemplateItem("GAME_LOGIN_BONUS", "Bonus de login", "🎁"),
-    QuickTemplateItem("GAME_BATTLE_PASS", "Battle pass", "🎟️"),
-    QuickTemplateItem("GAME_PVP_RANKED", "Ranked del juego", "🏆"),
-    QuickTemplateItem("GAME_SCREENSHOT", "Captura de pantalla", "📸"),
-    QuickTemplateItem("GAME_FRIEND_LIST", "Lista de amigos", "👥"),
-
-    // Minecraft Bedrock (single player focus)
-    QuickTemplateItem("MC_HUNGER", "Revisar hambre MC", "🍗"),
-    QuickTemplateItem("MC_DAY_NIGHT", "Ciclo día/noche MC", "🌗"),
-    QuickTemplateItem("MC_SLEEP_SKIP_NIGHT", "Dormir saltar noche", "🛏️"),
-    QuickTemplateItem("MC_SAVE_BEDROCK", "Guardar mundo Bedrock", "💾⛏️"),
-    QuickTemplateItem("MC_BUILD_CHECKPOINT", "Checkpoint construcción", "🏗️"),
-    QuickTemplateItem("MC_END_PREP", "Prep viaje al End", "🐉"),
-    QuickTemplateItem("MC_NETHER_PREP", "Prep viaje al Nether", "🔥"),
-    QuickTemplateItem("MC_INVENTORY_CHECK", "Ordenar inventario", "🎒⛏️"),
-    QuickTemplateItem("MC_VILLAGER_TRADE", "Comerciar con aldeanos", "🤝"),
-
-    // Adopt Me (Roblox)
-    QuickTemplateItem("ADOPT_FEED_PETS", "Alimentar mascotas Adopt Me", "🐶"),
-    QuickTemplateItem("ADOPT_PET_SLEEP", "Dormir mascotas Adopt Me", "😴"),
-    QuickTemplateItem("ADOPT_PET_FUN", "Jugar mascotas Adopt Me", "🎾"),
-    QuickTemplateItem("ADOPT_PET_DRINK", "Bebida mascotas Adopt Me", "💧"),
-    QuickTemplateItem("ADOPT_PET_SCHOOL", "Mascotas a la escuela", "🏫"),
-    QuickTemplateItem("ADOPT_DAILY", "Recompensa diaria Adopt Me", "🎁"),
-    QuickTemplateItem("ADOPT_TRADE_POST", "Trade Post Adopt Me", "🔄"),
-    QuickTemplateItem("ADOPT_AGE_UP", "Age up mascotas", "⏰"),
-    QuickTemplateItem("ADOPT_NEON_PREP", "Preparar mascota Neon", "✨"),
-
-    // Free Fire
-    QuickTemplateItem("FF_LOGIN_DAILY", "Login diario FF", "🔥"),
-    QuickTemplateItem("FF_DAILY_MISSIONS", "Misiones FF", "📋"),
-    QuickTemplateItem("FF_RANKED_RESET", "Ranked reset FF", "🏆"),
-    QuickTemplateItem("FF_DIAMOND_SPIN", "Diamond Spin FF", "💎"),
-    QuickTemplateItem("FF_BATTLE_PASS", "Battle Pass FF", "🎟️"),
-    QuickTemplateItem("FF_BOOYAH_DAY", "Booyah Day FF", "🎯"),
-    QuickTemplateItem("FF_SQUAD_UP", "Squad FF", "👥"),
-    QuickTemplateItem("FF_CLAIM_REWARDS", "Reclamar recompensas FF", "🎁"),
-
-    // Roblox general
-    QuickTemplateItem("ROBLOX_DAILY", "Daily Roblox", "🟢"),
-    QuickTemplateItem("ROBLOX_EVENT", "Evento Roblox", "🎉"),
-    QuickTemplateItem("ROBLOX_LIMITED_TIME", "Item limitado Roblox", "⏳"),
-
-    // Short AFK / game-event timers (sub-minute / few-minute)
-    QuickTemplateItem("AFK_30S", "AFK 30 segundos", "⏱️"),
-    QuickTemplateItem("AFK_1M", "AFK 1 minuto", "⏱️"),
-    QuickTemplateItem("QUICK_BREAK_2M", "Pausa 2 min", "⚡"),
-
-    // Far Future / Infinite
-    QuickTemplateItem("CAPSULE_2500", "Cápsula 2500", "🚀"),
-    QuickTemplateItem("YEAR_10000", "Meta año 10000", "🌌"),
-    QuickTemplateItem("ANNUAL_ANNIVERSARY", "Aniversario anual", "🎉")
+private val MAIN_QUICK_TEMPLATE_IDS = listOf(
+    "MED_MORNING", "WATER", "BREAKFAST", "LUNCH",
+    "SLEEP", "STUDY", "WORK_START", "GAMING_WATER"
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -231,13 +119,18 @@ fun QuickTemplateRow(
     modifier: Modifier = Modifier
 ) {
     var showAll by remember { mutableStateOf(false) }
+    val mainTemplates = remember {
+        MAIN_QUICK_TEMPLATE_IDS.mapNotNull { id ->
+            QUICK_TEMPLATES.firstOrNull { it.id == id }
+        }
+    }
 
     FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        QUICK_TEMPLATES.take(8).forEach { item ->
+        mainTemplates.forEach { item ->
             AssistChip(
                 onClick = { onSelectTemplate(item.id) },
                 label = {
@@ -261,7 +154,7 @@ fun QuickTemplateRow(
 
         AssistChip(
             onClick = { showAll = true },
-            label = { Text("Ver todas", fontSize = 12.sp) },
+            label = { Text("Ver biblioteca", fontSize = 12.sp) },
             leadingIcon = { Icon(Icons.Default.Apps, contentDescription = null) },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.testTag("quick_templates_all")
@@ -269,24 +162,86 @@ fun QuickTemplateRow(
     }
 
     if (showAll) {
-        AlertDialog(
-            onDismissRequest = { showAll = false },
-            title = { Text("Todas las plantillas") },
-            text = {
-                androidx.compose.foundation.lazy.LazyColumn(
+        QuickTemplateLibraryDialog(
+            onDismiss = { showAll = false },
+            onSelectTemplate = {
+                showAll = false
+                onSelectTemplate(it)
+            }
+        )
+    }
+}
+
+@Composable
+private fun QuickTemplateLibraryDialog(
+    onDismiss: () -> Unit,
+    onSelectTemplate: (String) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf<QuickTemplateCategory?>(null) }
+
+    val filtered = remember(query, selectedCategory) {
+        val normalized = query.trim().lowercase()
+        QUICK_TEMPLATES.filter { item ->
+            (selectedCategory == null || item.category == selectedCategory) &&
+                (normalized.isEmpty() ||
+                    item.label.lowercase().contains(normalized) ||
+                    item.category.label.lowercase().contains(normalized))
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Biblioteca de plantillas") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    placeholder = { Text("Buscar plantilla") }
+                )
+
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    AssistChip(
+                        onClick = { selectedCategory = null },
+                        label = { Text("Todas") },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    QuickTemplateCategory.entries.forEach { category ->
+                        AssistChip(
+                            onClick = {
+                                selectedCategory =
+                                    if (selectedCategory == category) null else category
+                            },
+                            label = { Text(category.label) },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+                }
+
+                LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    items(QUICK_TEMPLATES.size) { index ->
-                        val item = QUICK_TEMPLATES[index]
+                    items(
+                        count = filtered.size,
+                        key = { index -> filtered[index].id }
+                    ) { index ->
+                        val item = filtered[index]
                         TextButton(
-                            onClick = {
-                                showAll = false
-                                onSelectTemplate(item.id)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("quick_template_dialog_${item.id}")
+                            onClick = { onSelectTemplate(item.id) },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = "${item.emoji} ${item.label}",
@@ -297,10 +252,10 @@ fun QuickTemplateRow(
                         }
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showAll = false }) { Text("Cerrar") }
             }
-        )
-    }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cerrar") }
+        }
+    )
 }
