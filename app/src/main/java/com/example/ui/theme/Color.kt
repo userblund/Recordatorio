@@ -38,3 +38,17 @@ val HabitColor = Color(0xFF10B981) // Green / Habit
 val WorkColor = Color(0xFF8B5CF6) // Purple / Productivity
 val FutureColor = Color(0xFFEC4899) // Pink / Infinite
 val GeneralColor = Color(0xFF64748B) // Slate
+
+// New category colors (requested by user: maximum useful categories)
+val GamingColor = Color(0xFFA855F7)      // Vibrant purple / Gaming
+val HydrationColor = Color(0xFF0EA5E9)   // Sky blue / Water
+val FitnessColor = Color(0xFFEF4444)     // Red / Exercise
+val SocialColor = Color(0xFFF43F5E)      // Rose / Calls & messages
+val FinanceColor = Color(0xFF16A34A)    // Green / Money
+val ErrandsColor = Color(0xFFCA8A04)     // Amber / Tasks & errands
+val SchoolColor = Color(0xFF3B82F6)      // Blue / Study
+val SpiritualColor = Color(0xFF8B5CF6)  // Violet / Meditation
+val CreativeColor = Color(0xFFD946EF)   // Fuchsia / Art & music
+val TechColor = Color(0xFF0284C7)        // Sky / Devices & backups
+val SleepColor = Color(0xFF6366F1)      // Indigo / Sleep
+val PetsPlantsColor = Color(0xFF22C55E)  // Green / Pet care & plants
