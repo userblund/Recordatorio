@@ -24,6 +24,12 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         when (intent.action) {
+            ACTION_STOP_TEST_ALARM -> {
+                stopAlarmForReminder(context, reminderId)
+                manager.cancel(notificationId(reminderId))
+                return
+            }
+
             ACTION_ACKNOWLEDGE -> {
                 stopAlarmForReminder(context, reminderId)
                 manager.cancel(notificationId(reminderId))
@@ -120,6 +126,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "Recordatorio"
         val message = intent.getStringExtra(EXTRA_MESSAGE) ?: "Es momento de atender tu recordatorio."
         val category = intent.getStringExtra(EXTRA_CATEGORY) ?: "PERSONAL"
+        val isTestAlarm = intent.getBooleanExtra(EXTRA_IS_TEST_ALARM, false)
 
         try {
             AlarmSoundService.start(context, reminderId, title, message, category)
@@ -154,7 +161,13 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
-            .addAction(action(context, reminderId, ACTION_ACKNOWLEDGE, "OK", title, message, category, 10))
+            .addAction(
+                if (isTestAlarm) {
+                    action(context, reminderId, ACTION_STOP_TEST_ALARM, "DETENER", title, message, category)
+                } else {
+                    action(context, reminderId, ACTION_ACKNOWLEDGE, "OK", title, message, category, 10)
+                }
+            )
             .addAction(action(context, reminderId, ACTION_DELAY, "5 min", title, message, category, 5))
             .addAction(action(context, reminderId, ACTION_DELAY, "30 min", title, message, category, 30))
             .build()
@@ -357,6 +370,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
 
     companion object {
         const val ACTION_SHOW_REMINDER = "com.example.ACTION_SHOW_REMINDER"
+        const val ACTION_STOP_TEST_ALARM = "com.example.ACTION_STOP_TEST_ALARM"
         const val ACTION_DISMISS_ALARM = "com.example.ACTION_DISMISS_ALARM"
         const val ACTION_ACKNOWLEDGE = "com.example.ACTION_ACKNOWLEDGE"
         const val ACTION_COMPLETED_YES = "com.example.ACTION_COMPLETED_YES"
@@ -369,6 +383,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
         const val EXTRA_TITLE = "extra_title"
         const val EXTRA_MESSAGE = "extra_message"
         const val EXTRA_CATEGORY = "extra_category"
+        const val EXTRA_IS_TEST_ALARM = "extra_is_test_alarm"
         const val EXTRA_NOTIFICATION_ID = "extra_notification_id"
         const val EXTRA_MINUTES = "extra_minutes"
         const val REMOTE_INPUT_KEY = "recordatorio_minutes_input"
