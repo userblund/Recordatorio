@@ -689,42 +689,70 @@ class ReminderViewModel(
     }
 
     fun dismissActiveAlarm() {
-        val alarm = currentAlarm.value
-        if (alarm != null && alarm.reminderId > 0 && alarm.reminderId != 99999L) {
+        val alarm = currentAlarm.value ?: return
+        if (alarm.reminderId <= 0L) return
+
+        // The test alarm is intentionally not stored in Room. It must still
+        // behave exactly like a real alarm in the full-screen alarm UI.
+        if (alarm.reminderId == TEST_ALARM_ID) {
             AlarmPlayer.stopAlarm(appContext, alarm.reminderId)
-            viewModelScope.launch {
-                val item = repository.getReminderById(alarm.reminderId)
-                if (item != null) {
-                    repository.toggleCompleted(item)
-                    val updated = repository.getReminderById(item.id)
-                    if (updated != null && !updated.isCompleted) {
-                        ReminderScheduler.scheduleReminder(appContext, updated)
-                    } else {
-                        ReminderScheduler.cancelReminder(appContext, item.id)
-                    }
+            appContext.stopService(android.content.Intent(appContext, com.example.receiver.AlarmSoundService::class.java))
+            ReminderScheduler.cancelTestAlarm(appContext)
+            cancelNotification(TEST_ALARM_ID)
+            return
+        }
+
+        AlarmPlayer.stopAlarm(appContext, alarm.reminderId)
+        appContext.stopService(android.content.Intent(appContext, com.example.receiver.AlarmSoundService::class.java))
+        viewModelScope.launch {
+            val item = repository.getReminderById(alarm.reminderId)
+            if (item != null) {
+                repository.toggleCompleted(item)
+                val updated = repository.getReminderById(item.id)
+                if (updated != null && !updated.isCompleted) {
+                    ReminderScheduler.scheduleReminder(appContext, updated)
+                } else {
+                    ReminderScheduler.cancelReminder(appContext, item.id)
                 }
             }
         }
     }
 
     fun snoozeActiveAlarm(minutes: Int = 10) {
-        val alarm = currentAlarm.value
-        if (alarm != null && alarm.reminderId > 0 && alarm.reminderId != 99999L) {
+        val alarm = currentAlarm.value ?: return
+        if (alarm.reminderId <= 0L) return
+
+        if (alarm.reminderId == TEST_ALARM_ID) {
             AlarmPlayer.stopAlarm(appContext, alarm.reminderId)
-            viewModelScope.launch {
-                val item = repository.getReminderById(alarm.reminderId)
-                if (item != null) {
-                    repository.snooze(item, minutes)
-                    val updated = repository.getReminderById(item.id)
-                    if (updated != null) {
-                        ReminderScheduler.scheduleReminder(appContext, updated)
-                    }
+            appContext.stopService(android.content.Intent(appContext, com.example.receiver.AlarmSoundService::class.java))
+            cancelNotification(TEST_ALARM_ID)
+            ReminderScheduler.cancelTestAlarm(appContext)
+            ReminderScheduler.scheduleTestAlarm(appContext, minutes)
+            return
+        }
+
+        AlarmPlayer.stopAlarm(appContext, alarm.reminderId)
+        appContext.stopService(android.content.Intent(appContext, com.example.receiver.AlarmSoundService::class.java))
+        viewModelScope.launch {
+            val item = repository.getReminderById(alarm.reminderId)
+            if (item != null) {
+                repository.snooze(item, minutes)
+                val updated = repository.getReminderById(item.id)
+                if (updated != null) {
+                    ReminderScheduler.scheduleReminder(appContext, updated)
                 }
             }
         }
     }
 
+    private fun cancelNotification(reminderId: Long) {
+        val manager = appContext.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+        manager?.cancel((reminderId xor (reminderId ushr 32)).toInt() and 0x7fffffff)
+    }
+
     companion object {
+        private const val TEST_ALARM_ID = 99999L
+
         fun provideFactory(
             repository: ReminderRepository,
             context: Context
