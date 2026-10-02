@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.data.IntervalUnit
 import com.example.data.RecurrenceType
 import com.example.data.ReminderCategory
 import com.example.data.ReminderEntity
@@ -88,7 +89,9 @@ fun ReminderDialog(
         second: Int,
         recurrenceType: RecurrenceType,
         recurrenceIntervalHours: Int,
-        recurrenceIntervalMinutes: Int
+        recurrenceIntervalMinutes: Int,
+        recurrenceIntervalValue: Long,
+        recurrenceIntervalUnit: IntervalUnit
     ) -> Unit,
     onSaveAsTemplate: (
         title: String,
@@ -104,7 +107,9 @@ fun ReminderDialog(
         recurrenceType: RecurrenceType,
         recurrenceIntervalHours: Int,
         recurrenceIntervalMinutes: Int,
-        intervalOffsetMinutes: Long
+        intervalOffsetMinutes: Long,
+        recurrenceIntervalValue: Long,
+        recurrenceIntervalUnit: IntervalUnit
     ) -> Unit = { _, _, _, _, _, _, _, _, _, _, _, _, _, _ -> }
 ) {
     val cal = remember {
@@ -160,6 +165,12 @@ fun ReminderDialog(
     }
     var intervalMinutes by remember {
         mutableIntStateOf(initialReminder?.recurrenceIntervalMinutes ?: 30)
+    }
+    var intervalValueText by remember {
+        mutableStateOf(initialReminder?.recurrenceIntervalValue?.toString() ?: "1")
+    }
+    var intervalUnit by remember {
+        mutableStateOf(initialReminder?.let { IntervalUnit.fromId(it.recurrenceIntervalUnit) } ?: IntervalUnit.MINUTE)
     }
     // When > 0 the dialog saves the reminder as a relative-offset template:
     // "fire N minutes from now". Useful for game events / AFK timers.
@@ -911,6 +922,65 @@ fun ReminderDialog(
                         }
                     }
 
+                        AnimatedVisibility(visible = selectedRecurrence == RecurrenceType.GENERIC_INTERVAL) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Repetir cada:",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
+                                        value = intervalValueText,
+                                        onValueChange = { value ->
+                                            intervalValueText = value.filter { it.isDigit() }.take(18)
+                                        },
+                                        label = { Text("Cantidad") },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        modifier = Modifier.weight(1f).testTag("recurrence_interval_value")
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Text(
+                                            text = intervalUnit.displayName,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    IntervalUnit.entries.forEach { unit ->
+                                        FilterChip(
+                                            selected = intervalUnit == unit,
+                                            onClick = { intervalUnit = unit },
+                                            label = { Text(unit.displayName) },
+                                            modifier = Modifier.testTag("chip_interval_unit_${unit.id}")
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Ejemplos: 17 minutos, 2 horas, 3 días, 2 semanas, 4 meses, 7 años o 2 siglos.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
                     // LIVE PREVIEW BOX
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -984,7 +1054,9 @@ fun ReminderDialog(
                                     selectedRecurrence,
                                     intervalHours,
                                     intervalMinutes,
-                                    templateOffsetMinutes
+                                    templateOffsetMinutes,
+                                    intervalValueText.toLongOrNull()?.coerceAtLeast(1L) ?: 1L,
+                                    intervalUnit
                                 )
                                 showSaveAsTemplateFeedback = true
                             }
