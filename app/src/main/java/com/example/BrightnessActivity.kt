@@ -44,16 +44,6 @@ class BrightnessActivity : ComponentActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        // Recompose by recreating the small screen after returning from Settings.
-        if (::lastPermissionChecked.isInitialized) {
-            lastPermissionChecked = Settings.System.canWrite(this)
-        }
-    }
-
-    private lateinit var lastPermissionChecked: Boolean
-
     private fun readBrightness(): Int {
         return runCatching {
             Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS)
