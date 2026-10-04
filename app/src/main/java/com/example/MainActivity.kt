@@ -171,6 +171,10 @@ fun RecordatorioMainScreen(
     var brightnessPresets by remember { mutableStateOf(loadBrightnessPresets(context)) }
     var showBrightnessPresetDialog by remember { mutableStateOf(false) }
     var brightnessPresetName by remember { mutableStateOf("") }
+    var quickPresets by remember { mutableStateOf(loadQuickPresets(context)) }
+    var showQuickPresetDialog by remember { mutableStateOf(false) }
+    var quickPresetName by remember { mutableStateOf("") }
+    var quickPresetTemplateId by remember { mutableStateOf("MED_MORNING") }
 
     fun applyBrightness(value: Int) {
         val v = value.coerceIn(0, 255)
@@ -335,6 +339,38 @@ fun RecordatorioMainScreen(
                                         TextButton(onClick = { brightnessValue = preset.second; applyBrightness(preset.second) }) { Text("⭐ " + preset.first + ": " + preset.second + "/255") }
                                         TextButton(onClick = { brightnessPresets = brightnessPresets.filterNot { it.first == preset.first }; saveBrightnessPresets(context, brightnessPresets) }) { Text("Borrar") }
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item(key = "quick_presets") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("⭐ Presets Rápidos", fontWeight = FontWeight.Bold)
+                            TextButton(onClick = { showQuickPresetDialog = true }) { Text("➕ Crear") }
+                        }
+                        if (quickPresets.isEmpty()) {
+                            Text("Guarda tus plantillas rápidas favoritas con nombres propios.")
+                        } else {
+                            quickPresets.forEach { preset ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    TextButton(onClick = { viewModel.createFromQuickTemplate(preset.second) }) {
+                                        Text("⭐ " + preset.first)
+                                    }
+                                    TextButton(onClick = {
+                                        quickPresets = quickPresets.filterNot { it.first == preset.first }
+                                        saveQuickPresets(context, quickPresets)
+                                    }) { Text("Borrar") }
                                 }
                             }
                         }
@@ -733,6 +769,41 @@ fun RecordatorioMainScreen(
         )
     }
 
+    if (showQuickPresetDialog) {
+        AlertDialog(
+            onDismissRequest = { showQuickPresetDialog = false },
+            title = { Text("Crear preset rápido") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = quickPresetName,
+                        onValueChange = { quickPresetName = it },
+                        label = { Text("Nombre del preset") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("Elige una plantilla rápida:")
+                    QuickPresetSelector(
+                        selectedId = quickPresetTemplateId,
+                        onSelected = { quickPresetTemplateId = it }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val name = quickPresetName.trim()
+                    if (name.isNotEmpty()) {
+                        quickPresets = quickPresets.filterNot { it.first == name } + (name to quickPresetTemplateId)
+                        saveQuickPresets(context, quickPresets)
+                        quickPresetName = ""
+                        showQuickPresetDialog = false
+                    }
+                }) { Text("Guardar") }
+            },
+            dismissButton = { TextButton(onClick = { showQuickPresetDialog = false }) { Text("Cancelar") }
+        )
+    }
+
     // Delete Confirmation Dialog (reminder)
     reminderToDelete?.let { toDelete ->
         AlertDialog(
@@ -834,4 +905,41 @@ private fun loadBrightnessPresets(context: android.content.Context): List<Pair<S
 private fun saveBrightnessPresets(context: android.content.Context, items: List<Pair<String, Int>>) {
     context.getSharedPreferences("brightness_presets", android.content.Context.MODE_PRIVATE)
         .edit().putStringSet("items", items.map { it.first + "|" + it.second }.toSet()).apply()
+}
+
+private fun loadQuickPresets(context: android.content.Context): List<Pair<String, String>> =
+    context.getSharedPreferences("quick_presets", android.content.Context.MODE_PRIVATE)
+        .getStringSet("items", emptySet())
+        ?.mapNotNull {
+            val p = it.split("|", limit = 2)
+            if (p.size == 2) p[0] to p[1] else null
+        } ?: emptyList()
+
+private fun saveQuickPresets(context: android.content.Context, items: List<Pair<String, String>>) {
+    context.getSharedPreferences("quick_presets", android.content.Context.MODE_PRIVATE)
+        .edit().putStringSet("items", items.map { it.first + "|" + it.second }.toSet()).apply()
+}
+
+@Composable
+private fun QuickPresetSelector(selectedId: String, onSelected: (String) -> Unit) {
+    val options = listOf(
+        "MED_MORNING" to "💊 Medicamento mañana",
+        "MED_INTERVAL_4" to "💊 Medicamento cada 4 h",
+        "MED_INTERVAL_8" to "💊 Medicamento cada 8 h",
+        "WATER" to "💧 Agua cada 2 h",
+        "WATER_30M" to "💧 Agua cada 30 min",
+        "BREAKFAST" to "🥐 Desayuno",
+        "LUNCH" to "🥗 Almuerzo",
+        "SLEEP" to "🌙 Prepararse para dormir",
+        "STUDY" to "📚 Estudiar",
+        "WORK_START" to "💼 Empezar trabajo",
+        "GAMING_WATER" to "🎮💧 Agua durante gaming"
+    )
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        options.forEach { (id, label) ->
+            TextButton(onClick = { onSelected(id) }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (id == selectedId) "✓ " + label else label, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
 }
