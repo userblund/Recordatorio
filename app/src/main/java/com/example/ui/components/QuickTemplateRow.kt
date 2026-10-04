@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -119,6 +120,9 @@ fun QuickTemplateRow(
     modifier: Modifier = Modifier
 ) {
     var showAll by remember { mutableStateOf(false) }
+    var showCreate by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var customIds by remember { mutableStateOf(loadQuickPresetIds(context)) }
     val mainTemplates = remember {
         MAIN_QUICK_TEMPLATE_IDS.mapNotNull { id ->
             QUICK_TEMPLATES.firstOrNull { it.id == id }
@@ -152,6 +156,11 @@ fun QuickTemplateRow(
             )
         }
 
+        AssistChip(onClick = { showCreate = true }, label = { Text("Crear preset", fontSize = 12.sp) }, leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) }, shape = RoundedCornerShape(10.dp), modifier = Modifier.testTag("quick_preset_create"))
+
+        customIds.mapNotNull { id -> QUICK_TEMPLATES.firstOrNull { it.id == id } }.forEach { item ->
+            AssistChip(onClick = { onSelectTemplate(item.id) }, label = { Text("${item.emoji} ${item.label}", fontSize = 12.sp) }, leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) }, shape = RoundedCornerShape(10.dp), modifier = Modifier.testTag("quick_preset_${item.id}"))
+        }
         AssistChip(
             onClick = { showAll = true },
             label = { Text("Ver biblioteca", fontSize = 12.sp) },
@@ -161,6 +170,13 @@ fun QuickTemplateRow(
         )
     }
 
+    if (showCreate) {
+        QuickPresetCreateDialog(existingIds = customIds, onDismiss = { showCreate = false }, onSave = { id ->
+            customIds = (customIds + id).distinct()
+            saveQuickPresetIds(context, customIds)
+            showCreate = false
+        })
+    }
     if (showAll) {
         QuickTemplateLibraryDialog(
             onDismiss = { showAll = false },
@@ -259,4 +275,30 @@ private fun QuickTemplateLibraryDialog(
             TextButton(onClick = onDismiss) { Text("Cerrar") }
         }
     )
+}
+
+@Composable
+private fun QuickPresetCreateDialog(existingIds: List<String>, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var query by remember { mutableStateOf("") }
+    val filtered = QUICK_TEMPLATES.filter { query.isBlank() || it.label.contains(query, true) || it.id.contains(query, true) }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Crear preset rapido") }, text = {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Buscar plantilla") })
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(count = filtered.size, key = { filtered[it].id }) { index ->
+                    val item = filtered[index]
+                    TextButton(onClick = { onSave(item.id) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (existingIds.contains(item.id)) "[guardado] ${item.emoji} ${item.label}" else "${item.emoji} ${item.label}", modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+        }
+    }, confirmButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } })
+}
+
+private fun loadQuickPresetIds(context: android.content.Context): List<String> =
+    context.getSharedPreferences("quick_presets", android.content.Context.MODE_PRIVATE).getStringSet("ids", emptySet()).toList()
+
+private fun saveQuickPresetIds(context: android.content.Context, ids: List<String>) {
+    context.getSharedPreferences("quick_presets", android.content.Context.MODE_PRIVATE).edit().putStringSet("ids", ids.toSet()).apply()
 }
