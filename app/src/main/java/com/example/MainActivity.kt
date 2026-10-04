@@ -773,4 +773,8 @@ fun RecordatorioMainScreen(
         )
     }
 }
-\n\nprivate fun readSystemBrightness(context: android.content.Context): Int = runCatching {\n    Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)\n}.getOrDefault(38).coerceIn(0, 255)\n
+
+
+private fun readSystemBrightness(context: android.content.Context): Int = runCatching {
+    Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+}.getOrDefault(38).coerceIn(0, 255)
