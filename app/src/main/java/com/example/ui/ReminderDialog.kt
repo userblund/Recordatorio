@@ -54,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -176,6 +177,10 @@ fun ReminderDialog(
     // "fire N minutes from now". Useful for game events / AFK timers.
     var templateOffsetMinutes by remember { mutableStateOf(0L) }
     var showSaveAsTemplateFeedback by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var intervalPresets by remember { mutableStateOf(loadIntervalPresets(context)) }
+    var showIntervalPresetDialog by remember { mutableStateOf(false) }
+    var intervalPresetName by remember { mutableStateOf("") }
 
     var titleError by remember { mutableStateOf(false) }
 
@@ -973,6 +978,22 @@ fun ReminderDialog(
                                         )
                                     }
                                 }
+                                if (intervalPresets.isNotEmpty()) {
+                                    Text("Presets de cada X", fontWeight = FontWeight.Bold)
+                                    intervalPresets.forEach { preset ->
+                                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                            TextButton(onClick = {
+                                                intervalValueText = preset.value.toString()
+                                                intervalUnit = IntervalUnit.fromId(preset.unitId)
+                                            }) { Text(preset.name + ": " + preset.value + " " + IntervalUnit.fromId(preset.unitId).displayName) }
+                                            TextButton(onClick = {
+                                                intervalPresets = intervalPresets.filterNot { it.name == preset.name }
+                                                saveIntervalPresets(context, intervalPresets)
+                                            }) { Text("Borrar") }
+                                        }
+                                    }
+                                }
+                                TextButton(onClick = { showIntervalPresetDialog = true }) { Text("Crear preset de cada X") }
                                 Text(
                                     text = "Ejemplos: 17 minutos, 2 horas, 3 días, 2 semanas, 4 meses, 7 años o 2 siglos.",
                                     style = MaterialTheme.typography.labelSmall,
@@ -1123,4 +1144,18 @@ fun ReminderDialog(
             }
         }
     }
+}
+
+private data class IntervalPreset(val name: String, val value: Long, val unitId: String)
+
+private fun loadIntervalPresets(context: android.content.Context): List<IntervalPreset> =
+    context.getSharedPreferences("interval_presets", android.content.Context.MODE_PRIVATE).getStringSet("items", emptySet())
+        .mapNotNull { item ->
+            val p = item.split("|", limit = 3)
+            if (p.size == 3) p[1].toLongOrNull()?.let { IntervalPreset(p[0], it, p[2]) } else null
+        }
+
+private fun saveIntervalPresets(context: android.content.Context, items: List<IntervalPreset>) {
+    context.getSharedPreferences("interval_presets", android.content.Context.MODE_PRIVATE).edit()
+        .putStringSet("items", items.map { it.name + "|" + it.value + "|" + it.unitId }.toSet()).apply()
 }
