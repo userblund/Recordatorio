@@ -1150,6 +1150,7 @@ private data class IntervalPreset(val name: String, val value: Long, val unitId:
 
 private fun loadIntervalPresets(context: android.content.Context): List<IntervalPreset> =
     context.getSharedPreferences("interval_presets", android.content.Context.MODE_PRIVATE).getStringSet("items", emptySet())
+        .orEmpty()
         .mapNotNull { item ->
             val p = item.split("|", limit = 3)
             if (p.size == 3) p[1].toLongOrNull()?.let { IntervalPreset(p[0], it, p[2]) } else null
