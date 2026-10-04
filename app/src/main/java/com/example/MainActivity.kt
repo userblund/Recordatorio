@@ -828,7 +828,7 @@ private fun loadBrightnessPresets(context: android.content.Context): List<Pair<S
         .getStringSet("items", emptySet())
         ?.mapNotNull {
             val p = it.split("|", limit = 2)
-            if (p.size == 2) p[0] to p[1].toIntOrNull()?.coerceIn(0, 255) else null
+            if (p.size == 2) p[1].toIntOrNull()?.coerceIn(0, 255)?.let { p[0] to it } else null
         } ?: emptyList()
 
 private fun saveBrightnessPresets(context: android.content.Context, items: List<Pair<String, Int>>) {
