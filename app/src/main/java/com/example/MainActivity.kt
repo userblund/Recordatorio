@@ -8,6 +8,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import android.provider.Settings
+import kotlin.math.roundToInt
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -163,6 +165,19 @@ fun RecordatorioMainScreen(
     var reminderToEdit by remember { mutableStateOf<ReminderEntity?>(null) }
     var reminderToDelete by remember { mutableStateOf<ReminderEntity?>(null) }
     var customTemplateToDelete by remember { mutableStateOf<CustomTemplateEntity?>(null) }
+    var showBrightnessPanel by remember { mutableStateOf(false) }
+    var brightnessValue by remember { mutableStateOf(readSystemBrightness(context)) }
+
+    fun applyBrightness(value: Int) {
+        val v = value.coerceIn(0, 255)
+        if (!Settings.System.canWrite(context)) {
+            context.startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${context.packageName}")))
+        } else {
+            Settings.System.putInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, v)
+            brightnessValue = v
+            scope.launch { snackbarHostState.showSnackbar("Brillo aplicado: $v / 255") }
+        }
+    }
 
     // Request notification permission on Android 13+
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -289,6 +304,29 @@ fun RecordatorioMainScreen(
                 }
 
                 // Quick Templates Row
+                item(key = "brightness_control") {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Brillo de pantalla", fontWeight = FontWeight.Bold)
+                            Text("Valor actual: $brightnessValue / 255  •  ${(brightnessValue * 100f / 255f).roundToInt()}%")
+                            Slider(
+                                value = brightnessValue.toFloat(),
+                                onValueChange = { brightnessValue = it.roundToInt().coerceIn(0, 255) },
+                                valueRange = 0f..255f,
+                                steps = 254
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { brightnessValue = 38 }) { Text("15% → 38") }
+                                TextButton(onClick = { applyBrightness(brightnessValue) }) { Text("Aplicar") }
+                            }
+                        }
+                    }
+                }
+
                 item(key = "quick_templates") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
@@ -734,3 +772,4 @@ fun RecordatorioMainScreen(
         )
     }
 }
+\n\nprivate fun readSystemBrightness(context: android.content.Context): Int = runCatching {\n    Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)\n}.getOrDefault(38).coerceIn(0, 255)\n
