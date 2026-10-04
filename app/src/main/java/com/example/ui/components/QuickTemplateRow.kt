@@ -297,7 +297,7 @@ private fun QuickPresetCreateDialog(existingIds: List<String>, onDismiss: () -> 
 }
 
 private fun loadQuickPresetIds(context: android.content.Context): List<String> =
-    context.getSharedPreferences("quick_presets", android.content.Context.MODE_PRIVATE).getStringSet("ids", emptySet()).toList()
+    context.getSharedPreferences("quick_presets", android.content.Context.MODE_PRIVATE).getStringSet("ids", emptySet()).orEmpty().toList()
 
 private fun saveQuickPresetIds(context: android.content.Context, ids: List<String>) {
     context.getSharedPreferences("quick_presets", android.content.Context.MODE_PRIVATE).edit().putStringSet("ids", ids.toSet()).apply()
