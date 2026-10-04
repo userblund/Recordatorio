@@ -171,6 +171,7 @@ fun RecordatorioMainScreen(
     var brightnessPresets by remember { mutableStateOf(loadBrightnessPresets(context)) }
     var showBrightnessPresetDialog by remember { mutableStateOf(false) }
     var brightnessPresetName by remember { mutableStateOf("") }
+    var canModifySystemSettings by remember { mutableStateOf(Settings.System.canWrite(context)) }
     var quickPresets by remember { mutableStateOf(loadQuickPresets(context)) }
     var showQuickPresetDialog by remember { mutableStateOf(false) }
     var quickPresetName by remember { mutableStateOf("") }
@@ -217,6 +218,8 @@ fun RecordatorioMainScreen(
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 refreshExactAlarmPermission()
+                canModifySystemSettings = Settings.System.canWrite(context)
+                brightnessValue = readSystemBrightness(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -321,6 +324,25 @@ fun RecordatorioMainScreen(
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Brillo de pantalla", fontWeight = FontWeight.Bold)
                             Text("Valor actual: $brightnessValue / 255  •  ${(brightnessValue * 100f / 255f).roundToInt()}%")
+                            if (!canModifySystemSettings) {
+                                Text(
+                                    "Android no ha concedido a Recordatorio permiso para modificar el brillo del sistema.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                TextButton(
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(
+                                                Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                                                Uri.parse("package:" + context.packageName)
+                                            )
+                                        )
+                                    }
+                                ) {
+                                    Text("Permitir modificar ajustes del sistema")
+                                }
+                            }
                             Slider(
                                 value = brightnessValue.toFloat(),
                                 onValueChange = { brightnessValue = it.roundToInt().coerceIn(0, 255) },
