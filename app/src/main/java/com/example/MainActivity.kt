@@ -168,6 +168,9 @@ fun RecordatorioMainScreen(
     var customTemplateToDelete by remember { mutableStateOf<CustomTemplateEntity?>(null) }
     var showBrightnessPanel by remember { mutableStateOf(false) }
     var brightnessValue by remember { mutableStateOf(readSystemBrightness(context)) }
+    var brightnessPresets by remember { mutableStateOf(loadBrightnessPresets(context)) }
+    var showBrightnessPresetDialog by remember { mutableStateOf(false) }
+    var brightnessPresetName by remember { mutableStateOf("") }
 
     fun applyBrightness(value: Int) {
         val v = value.coerceIn(0, 255)
@@ -323,6 +326,16 @@ fun RecordatorioMainScreen(
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(onClick = { brightnessValue = 38 }) { Text("15% → 38") }
                                 TextButton(onClick = { applyBrightness(brightnessValue) }) { Text("Aplicar") }
+                                TextButton(onClick = { showBrightnessPresetDialog = true }) { Text("⭐ Guardar preset") }
+                            }
+                            if (brightnessPresets.isNotEmpty()) {
+                                Text("Presets de brillo", fontWeight = FontWeight.Bold)
+                                brightnessPresets.forEach { preset ->
+                                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                        TextButton(onClick = { brightnessValue = preset.second; applyBrightness(preset.second) }) { Text("⭐ " + preset.first + ": " + preset.second + "/255") }
+                                        TextButton(onClick = { brightnessPresets = brightnessPresets.filterNot { it.first == preset.first }; saveBrightnessPresets(context, brightnessPresets) }) { Text("Borrar") }
+                                    }
+                                }
                             }
                         }
                     }
@@ -689,6 +702,37 @@ fun RecordatorioMainScreen(
         )
     }
 
+    if (showBrightnessPresetDialog) {
+        AlertDialog(
+            onDismissRequest = { showBrightnessPresetDialog = false },
+            title = { Text("Crear preset de brillo") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = brightnessPresetName,
+                        onValueChange = { brightnessPresetName = it },
+                        label = { Text("Nombre") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("Se guardará " + brightnessValue + " / 255 (" + (brightnessValue * 100f / 255f).roundToInt() + "%).")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val name = brightnessPresetName.trim()
+                    if (name.isNotEmpty()) {
+                        brightnessPresets = brightnessPresets.filterNot { it.first == name } + (name to brightnessValue)
+                        saveBrightnessPresets(context, brightnessPresets)
+                        brightnessPresetName = ""
+                        showBrightnessPresetDialog = false
+                    }
+                }) { Text("Guardar") }
+            },
+            dismissButton = { TextButton(onClick = { showBrightnessPresetDialog = false }) { Text("Cancelar") } }
+        )
+    }
+
     // Delete Confirmation Dialog (reminder)
     reminderToDelete?.let { toDelete ->
         AlertDialog(
@@ -778,3 +822,16 @@ fun RecordatorioMainScreen(
 private fun readSystemBrightness(context: android.content.Context): Int = runCatching {
     Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
 }.getOrDefault(38).coerceIn(0, 255)
+
+private fun loadBrightnessPresets(context: android.content.Context): List<Pair<String, Int>> =
+    context.getSharedPreferences("brightness_presets", android.content.Context.MODE_PRIVATE)
+        .getStringSet("items", emptySet())
+        ?.mapNotNull {
+            val p = it.split("|", limit = 2)
+            if (p.size == 2) p[0] to p[1].toIntOrNull()?.coerceIn(0, 255) else null
+        } ?: emptyList()
+
+private fun saveBrightnessPresets(context: android.content.Context, items: List<Pair<String, Int>>) {
+    context.getSharedPreferences("brightness_presets", android.content.Context.MODE_PRIVATE)
+        .edit().putStringSet("items", items.map { it.first + "|" + it.second }.toSet()).apply()
+}
