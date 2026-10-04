@@ -54,7 +54,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -113,7 +112,6 @@ fun ReminderDialog(
         recurrenceIntervalUnit: IntervalUnit
     ) -> Unit = { _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ -> }
 ) {
-    val context = LocalContext.current
     val cal = remember {
         Calendar.getInstance().apply {
             if (initialReminder != null) {
@@ -178,9 +176,6 @@ fun ReminderDialog(
     // "fire N minutes from now". Useful for game events / AFK timers.
     var templateOffsetMinutes by remember { mutableStateOf(0L) }
     var showSaveAsTemplateFeedback by remember { mutableStateOf(false) }
-    var intervalPresets by remember { mutableStateOf(loadIntervalPresets(context)) }
-    var showIntervalPresetDialog by remember { mutableStateOf(false) }
-    var intervalPresetName by remember { mutableStateOf("") }
 
     var titleError by remember { mutableStateOf(false) }
 
@@ -934,34 +929,6 @@ fun ReminderDialog(
                                     .padding(top = 4.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                if (intervalPresets.isNotEmpty()) {
-                                    Text("⭐ Presets de cada X", fontWeight = FontWeight.Bold)
-                                    intervalPresets.forEach { preset ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            TextButton(onClick = {
-                                                intervalValueText = preset.second.toString()
-                                                intervalUnit = IntervalUnit.fromId(preset.third)
-                                            }) {
-                                                Text("⭐ " + preset.first + ": " + preset.second + " " + IntervalUnit.fromId(preset.third).displayName)
-                                            }
-                                            TextButton(onClick = {
-                                                intervalPresets = intervalPresets.filterNot { it.first == preset.first }
-                                                saveIntervalPresets(context, intervalPresets)
-                                            }) { Text("Borrar") }
-                                        }
-                                    }
-                                }
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 4.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
                                 Text(
                                     text = "Repetir cada:",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -1011,10 +978,6 @@ fun ReminderDialog(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                TextButton(onClick = { showIntervalPresetDialog = true }) {
-                                    Text("⭐ Guardar esta configuración como preset")
-                                }
-                            }
                             }
                         }
 
@@ -1160,58 +1123,4 @@ fun ReminderDialog(
             }
         }
     }
-
-    if (showIntervalPresetDialog) {
-        AlertDialog(
-            onDismissRequest = { showIntervalPresetDialog = false },
-            title = { Text("Crear preset de cada X") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = intervalPresetName,
-                        onValueChange = { intervalPresetName = it },
-                        label = { Text("Nombre del preset") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text("Se guardará: " + intervalValueText + " " + intervalUnit.displayName)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val name = intervalPresetName.trim()
-                    val value = intervalValueText.toLongOrNull()?.coerceAtLeast(1L)
-                    if (name.isNotEmpty() && value != null) {
-                        intervalPresets = intervalPresets.filterNot { it.first == name } + IntervalPreset(name, value, intervalUnit.id)
-                        saveIntervalPresets(context, intervalPresets)
-                        intervalPresetName = ""
-                        showIntervalPresetDialog = false
-                    }
-                }) { Text("Guardar") }
-            },
-            dismissButton = { TextButton(onClick = { showIntervalPresetDialog = false }) { Text("Cancelar") } }
-        )
-    }
-
-}
-
-private data class IntervalPreset(
-    val first: String,
-    val second: Long,
-    val third: String
-)
-
-private fun loadIntervalPresets(context: android.content.Context): List<IntervalPreset> =
-    context.getSharedPreferences("interval_presets", android.content.Context.MODE_PRIVATE)
-        .getStringSet("items", emptySet())
-        ?.mapNotNull {
-            val p = it.split("|", limit = 3)
-            if (p.size == 3) IntervalPreset(p[0], p[1].toLongOrNull() ?: return@mapNotNull null, p[2]) else null
-        } ?: emptyList()
-
-private fun saveIntervalPresets(context: android.content.Context, items: List<IntervalPreset>) {
-    context.getSharedPreferences("interval_presets", android.content.Context.MODE_PRIVATE)
-        .edit()
-        .putStringSet("items", items.map { it.first + "|" + it.second + "|" + it.third }.toSet())
-        .apply()
 }
